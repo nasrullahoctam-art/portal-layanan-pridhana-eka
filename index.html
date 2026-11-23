@@ -42,4 +42,1084 @@
 
   <!-- DASHBOARD UTAMA -->
   <div id="dashboardSection" class="hidden min-h-screen flex flex-col">
-    <header class="bg-white border-b border-sky-200 px-6 py-3 flex flex-wrap justify-between items-center sticky top-0 z-1
+    <header class="bg-white border-b border-sky-200 px-6 py-3 flex flex-wrap justify-between items-center sticky top-0 z-10 shadow-sm gap-2">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo" class="h-10 object-contain" onerror="this.style.display='none'">
+        <div>
+          <h2 class="font-bold text-sky-900 text-base leading-tight">PT. PRIDHANA EKA</h2>
+          <span id="userBadge" class="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-medium"></span>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btnManageUsers" class="hidden text-xs bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg font-medium">👥 Kelola User</button>
+        <button id="btnRefresh" class="text-xs bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-3 py-1.5 rounded-lg font-medium">↻ Refresh Data</button>
+        <button id="btnLogout" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium">Keluar</button>
+      </div>
+    </header>
+
+    <main class="p-6 max-w-7xl mx-auto w-full space-y-6">
+      <!-- PANEL MONITORING KHUSUS MANAGEMENT & ADMINISTRATOR -->
+      <div id="managementPanel" class="hidden space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-sky-600 font-semibold">Total Pekerjaan</div>
+            <div id="statTotal" class="text-2xl font-bold text-sky-900 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-sky-600 font-semibold">Dalam Proses</div>
+            <div id="statActive" class="text-2xl font-bold text-sky-700 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-red-600 font-semibold">Hold / Revisi</div>
+            <div id="statHold" class="text-2xl font-bold text-red-600 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-amber-600 font-semibold">Siap Tagih / Kirim</div>
+            <div id="statBilling" class="text-2xl font-bold text-amber-600 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-emerald-600 font-semibold">Closed & Terarsip</div>
+            <div id="statClosed" class="text-2xl font-bold text-emerald-600 mt-1">0</div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap justify-between items-center bg-white border border-sky-200 rounded-xl px-4 py-3 gap-2">
+          <span class="text-xs font-semibold text-sky-900">📊 Rekapitulasi Monitoring Pekerjaan PT. Pridhana Eka</span>
+          <button id="btnExport" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg">
+            ⬇ Export Rekap (.CSV / Excel)
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Kategori Layanan -->
+      <div class="flex flex-wrap justify-between items-center gap-4">
+        <div id="catBar" class="flex flex-wrap gap-2">
+          <button data-cat="ALL" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Semua Layanan</button>
+          <button data-cat="Instalasi" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Instalasi (IQOQ)</button>
+          <button data-cat="Kalibrasi" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Kalibrasi (PQ)</button>
+          <button data-cat="Service Kontrak" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Service Kontrak (3x)</button>
+          <button data-cat="Service" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Service Reguler</button>
+        </div>
+        <button id="btnNewJobModal" class="hidden btn-sky text-xs font-semibold px-4 py-2 rounded-lg shadow">+ Input Permintaan & PO Baru</button>
+      </div>
+
+      <!-- Tabel Monitoring Alur -->
+      <div class="card-white rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-sky-50 border-b border-sky-200 text-sky-900 text-xs uppercase">
+                <th class="p-3.5">Job ID & QR</th>
+                <th class="p-3.5">Layanan & Instrumen</th>
+                <th class="p-3.5">Customer & No. PO</th>
+                <th class="p-3.5">Teknisi & Jadwal</th>
+                <th class="p-3.5">Status & Tanggal Alur</th>
+                <th class="p-3.5">Dokumen & Arsip</th>
+                <th class="p-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="jobsTableBody" class="divide-y divide-sky-100 text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: INPUT QUOTATION & PO -->
+  <div id="modalCreateJob" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sky-900">Input Quotation & Verifikasi PO</h3>
+        <button type="button" data-close="modalCreateJob" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <form id="createJobForm" class="space-y-3 text-sm">
+        <div>
+          <label class="font-semibold text-xs text-sky-900">Jenis Pekerjaan</label>
+          <select id="inJenis" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+            <option value="Instalasi">Instalasi (Wajib Job Report + IQOQ)</option>
+            <option value="Kalibrasi">Kalibrasi (Wajib Job Report + PQ, Multi-Instrumen)</option>
+            <option value="Service Kontrak">Service Kontrak (2x Service + 1x Kalibrasi PQ, 3 Jadwal Fleksibel)</option>
+            <option value="Service">Service Reguler (Job Report)</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Nama Customer</label>
+            <input type="text" id="inCustomer" required maxlength="120" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+          </div>
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Nomor PO (Anti-Double)</label>
+            <input type="text" id="inNoPO" required maxlength="60" placeholder="PO-2026-XXX" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+          </div>
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Jumlah Instrumen / Unit</label>
+            <input type="number" id="inTotalInstr" min="1" value="1" required class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold text-xs text-sky-900">Nilai PO (Rp)</label>
+          <input type="number" id="inNilaiPO" required min="1" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-xs text-sky-900">Deskripsi Quotation & Daftar Instrumen</label>
+          <textarea id="inDeskripsi" rows="2" required maxlength="500" placeholder="Tuliskan detail quotation dan daftar instrumen (misal: 3 unit timbangan/HPLC)..." class="w-full border border-sky-200 rounded-lg p-2 mt-1"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Upload Quotation (PDF, maks 7 MB)</label>
+            <input type="file" id="inFileQuot" accept="application/pdf" required class="w-full text-xs mt-1">
+          </div>
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Upload PO Customer (PDF, maks 7 MB)</label>
+            <input type="file" id="inFilePO" accept="application/pdf" required class="w-full text-xs mt-1">
+          </div>
+        </div>
+        <div class="bg-sky-50 p-3 rounded-lg border border-sky-200 flex items-start gap-2">
+          <input type="checkbox" id="chkVerifyPO" required class="mt-1">
+          <label for="chkVerifyPO" class="text-xs text-sky-900">Saya menyatakan telah memeriksa kesesuaian harga, jumlah/item instrumen, dan syarat pembayaran antara <b>Quotation</b> dan <b>PO Customer</b>.</label>
+        </div>
+        <button type="submit" id="btnSubmitJob" class="w-full btn-sky py-2.5 rounded-lg font-semibold">Simpan & Teruskan ke Leader</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: QR CODE VIEWER -->
+  <div id="modalQR" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-xs w-full p-6 text-center space-y-4">
+      <h3 class="font-bold text-sky-900" id="qrTitle">QR Code Serah Terima</h3>
+      <div id="qrcodeContainer" class="flex justify-center p-3 bg-white border border-sky-100 rounded-xl min-h-[120px] items-center"></div>
+      <p id="qrText" class="text-[10px] text-slate-400 break-all select-all"></p>
+      <p class="text-xs text-slate-500">Gunakan QR Code ini saat serah terima dokumen fisik & digital ke Admin Pengiriman.</p>
+      <button type="button" data-close="modalQR" class="w-full bg-sky-100 text-sky-800 py-2 rounded-lg text-xs font-semibold">Tutup</button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: ACTION MODAL DINAMIS SESUAI ROLE -->
+  <div id="modalAction" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sky-900" id="actionModalTitle">Proses Pekerjaan</h3>
+        <button type="button" data-close="modalAction" class="text-slate-400">✕</button>
+      </div>
+      <div id="actionModalBody" class="space-y-3 text-sm"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: VIEW JOB DETAIL (RIWAYAT TANGGAL SETIAP ALUR, AUDIT LOG JAM & TANGGAL, INSTRUMEN & PENGIRIMAN BERTAHAP) -->
+  <div id="modalViewJob" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="font-bold text-sky-900 text-base" id="viewJobTitle">Detail Pekerjaan</h3>
+          <p class="text-xs text-sky-600" id="viewJobSubtitle"></p>
+        </div>
+        <button type="button" data-close="modalViewJob" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <div id="viewJobBody" class="space-y-4 text-sm"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: KELOLA USER (ADMINISTRATOR) -->
+  <div id="modalAdminExtra" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sky-900" id="adminExtraTitle">Panel Administrator</h3>
+        <button type="button" data-close="modalAdminExtra" class="text-slate-400">✕</button>
+      </div>
+      <div id="adminExtraBody" class="space-y-4 text-xs"></div>
+    </div>
+  </div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx93b1GP8KCQAFImwspZYZZL8WevKOYmLiT8xYZRWR9_mv6U7Vb-ceWDvModV2niq0/exec';
+  const SESSION_KEY = 'pridhana_session';
+  const MAX_FILE_BYTES = 7 * 1024 * 1024;
+
+  let currentUser = null;
+  let token = null;
+  let allJobs = [];
+  let currentFilter = 'ALL';
+  let busy = false;
+  let scanner = null;
+  let viewJobSeq = 0;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safeUrl = u => /^https:\/\/(drive|docs)\.google\.com\//.test(String(u || '')) ? String(u) : '';
+  const toDateInput = v => {
+    if (!v) return '';
+    const s = String(v);
+    const m = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+    if (m) return m[1];
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+  };
+  const fmtDate = v => {
+    const dStr = toDateInput(v);
+    if (!dStr) return '-';
+    const [y, m, d] = dStr.split('-');
+    return `${d}/${m}/${y}`;
+  };
+  const fmtDateTime = v => {
+    if (!v) return '-';
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return fmtDate(v);
+    const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
+    return `${tgl} • ${jam} WIB`;
+  };
+  const saveSession = () => { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, user: currentUser })); } catch (e) {} };
+  const clearSession = () => { try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {} };
+
+  const toBase64 = file => new Promise((resolve, reject) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Gagal membaca file.'));
+    reader.readAsDataURL(file);
+  });
+
+  function checkPdf(file, label) {
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) throw new Error(`File "${label}" harus berformat PDF.`);
+    if (file.size > MAX_FILE_BYTES) throw new Error(`File "${label}" melebihi batas 7 MB.`);
+  }
+
+  async function api(payload) {
+    if (!API_URL || API_URL.indexOf('GANTI_') === 0) throw new Error('API_URL di index.html belum diisi dengan Web App URL Apps Script.');
+    let res;
+    try {
+      res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ ...payload, token }) });
+    } catch (e) {
+      throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet atau API_URL.');
+    }
+    let json;
+    try { json = await res.json(); }
+    catch (e) { throw new Error('Respons server tidak valid. Pastikan Web App sudah di-deploy dengan akses "Anyone".'); }
+    if (json.code === 'AUTH') {
+      clearSession();
+      alert(json.message);
+      location.reload();
+      throw new Error(json.message);
+    }
+    return json;
+  }
+
+  function openModal(id) { $(id).classList.remove('hidden'); }
+  function closeModal(id) {
+    if (id === 'modalAction') stopScan();
+    if (id === 'modalViewJob') viewJobSeq++;
+    $(id).classList.add('hidden');
+  }
+
+  function enterDashboard() {
+    $('loginSection').classList.add('hidden');
+    $('dashboardSection').classList.remove('hidden');
+    $('userBadge').innerText = `${currentUser.nama} (${currentUser.role})`;
+    if (['ADMIN_SALES', 'ADMINISTRATOR'].includes(currentUser.role)) $('btnNewJobModal').classList.remove('hidden');
+    if (['MANAGEMENT', 'ADMINISTRATOR'].includes(currentUser.role)) {
+      $('managementPanel').classList.remove('hidden');
+    }
+    if (currentUser.role === 'ADMINISTRATOR') $('btnManageUsers').classList.remove('hidden');
+    updateCategoryButtons();
+    loadJobs();
+  }
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('btnLogin');
+    $('loginMsg').innerText = '';
+    btn.innerText = 'Memverifikasi...';
+    btn.disabled = true;
+    try {
+      const res = await api({ action: 'login', username: $('username').value.trim(), password: $('password').value });
+      if (res.status === 'success') {
+        currentUser = res.user;
+        token = res.token;
+        saveSession();
+        enterDashboard();
+      } else {
+        $('loginMsg').innerText = res.message;
+      }
+    } catch (err) {
+      $('loginMsg').innerText = err.message;
+    } finally {
+      btn.innerText = 'Masuk ke Sistem';
+      btn.disabled = false;
+    }
+  });
+
+  function logout() { clearSession(); location.reload(); }
+
+  async function loadJobs() {
+    const tbody = $('jobsTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-sky-600">Memuat data dari Google Drive & Sheets...</td></tr>';
+    try {
+      const res = await api({ action: 'getJobs' });
+      if (res.status !== 'success') throw new Error(res.message || 'Gagal memuat data.');
+      allJobs = res.jobs;
+      renderTable();
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-red-600">${esc(err.message)}</td></tr>`;
+    }
+  }
+
+  function filterCategory(cat) {
+    currentFilter = cat;
+    updateCategoryButtons();
+    renderTable();
+  }
+
+  function updateCategoryButtons() {
+    document.querySelectorAll('.cat-btn').forEach(b => {
+      const on = b.dataset.cat === currentFilter;
+      b.className = 'cat-btn px-4 py-1.5 rounded-full text-xs font-semibold ' +
+        (on ? 'bg-sky-600 text-white' : 'bg-white text-sky-700 border border-sky-200');
+    });
+  }
+
+  function updateManagementStats(jobsList) {
+    if (!currentUser || !['MANAGEMENT', 'ADMINISTRATOR'].includes(currentUser.role)) return;
+    const total = jobsList.length;
+    const hold = jobsList.filter(j => j.Status_Alur === 'HOLD_REVISION').length;
+    const closed = jobsList.filter(j => j.Status_Alur === 'CLOSED_ARCHIVED').length;
+    const billing = jobsList.filter(j =>
+      ['HANDOVER_ADMIN_PENGIRIMAN', 'READY_SHIPPING', 'READY_BILLING'].includes(j.Status_Alur)
+    ).length;
+    const active = Math.max(0, total - hold - closed - billing);
+    $('statTotal').innerText = total;
+    $('statActive').innerText = active;
+    $('statHold').innerText = hold;
+    $('statBilling').innerText = billing;
+    $('statClosed').innerText = closed;
+  }
+
+  function getInstrStats(job) {
+    const total = Math.max(1, Number(job.Total_Instrumen || 1));
+    const done = Math.max(0, Math.min(total, Number(job.Instrumen_Selesai || 0)));
+    const rem = Math.max(0, total - done);
+    let batches = [];
+    try { batches = JSON.parse(job.Riwayat_Pengiriman_Bertahap || '[]'); } catch (e) { batches = []; }
+    return { total, done, rem, batches };
+  }
+
+  function exportJobsToCSV() {
+    const data = currentFilter === 'ALL' ? allJobs : allJobs.filter(j => j.Jenis_Pekerjaan === currentFilter);
+    if (!data.length) return alert('Tidak ada data untuk di-export.');
+    const headers = ['Job_ID', 'Jenis_Pekerjaan', 'Customer', 'No_PO', 'Total_Instrumen', 'Instrumen_Selesai',
+      'Nilai_PO', 'Teknisi_Assigned', 'Status_Alur', 'Revisi_Count', 'Catatan_Hold', 'Resi_Shipping', 'Folder_Arsip_URL'];
+    const cell = v => {
+      let s = String(v ?? '');
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    const csv = [headers.join(','), ...data.map(r => headers.map(h => cell(r[h])).join(','))].join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Rekap_Monitoring_Pridhana_Eka_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function renderTable() {
+    const tbody = $('jobsTableBody');
+    const filtered = currentFilter === 'ALL' ? allJobs : allJobs.filter(j => j.Jenis_Pekerjaan === currentFilter);
+    updateManagementStats(filtered);
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada data pekerjaan.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(job => {
+      const isHold = job.Status_Alur === 'HOLD_REVISION';
+      const isClosed = job.Status_Alur === 'CLOSED_ARCHIVED';
+      const badgeColor = isClosed ? 'bg-emerald-100 text-emerald-700' : isHold ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700';
+      const folder = safeUrl(job.Folder_Arsip_URL);
+      const st = getInstrStats(job);
+
+      const instrInfo = (job.Jenis_Pekerjaan === 'Kalibrasi' || Number(job.Total_Instrumen || 1) > 1)
+        ? `<div class="text-[11px] text-sky-700 font-semibold mt-1">Instrumen: ${st.done}/${st.total} selesai (sisa ${st.rem})</div>`
+        : '';
+
+      const jadwalInfo = job.Jenis_Pekerjaan === 'Service Kontrak'
+        ? `<div class="space-y-0.5">
+             <div><b>K1:</b> ${fmtDate(job.Jadwal_1)}</div>
+             <div><b>K2:</b> ${fmtDate(job.Jadwal_2)}</div>
+             <div><b>K3:</b> ${fmtDate(job.Jadwal_3)}</div>
+           </div>`
+        : `<div><b>Jadwal:</b> ${fmtDate(job.Jadwal_1)}</div>`;
+
+      const latestDate = job.Tanggal_Close_Lunas || job.Tanggal_Kirim_Shipping || job.Tanggal_Admin_Pengiriman ||
+        job.Tanggal_Serah_Teknisi || job.Tanggal_Jadwal_QR || job.Tanggal_Input_Alur || job.Tanggal_Input;
+
+      return `
+        <tr class="hover:bg-sky-50/60">
+          <td class="p-3.5">
+            <div class="font-bold text-sky-900">${esc(job.Job_ID)}</div>
+            <div class="flex items-center gap-2 mt-1">
+              <button data-act="view" data-id="${esc(job.Job_ID)}" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-800 px-2 py-0.5 rounded font-semibold">👁 View Job</button>
+              <button data-act="qr" data-id="${esc(job.Job_ID)}" class="text-xs text-sky-600 underline">QR</button>
+            </div>
+          </td>
+          <td class="p-3.5">
+            <span class="font-semibold text-slate-800">${esc(job.Jenis_Pekerjaan)}</span>
+            <p class="text-xs text-slate-500 truncate max-w-[180px]" title="${esc(job.Deskripsi_Quotation)}">${esc(job.Deskripsi_Quotation)}</p>
+            ${instrInfo}
+          </td>
+          <td class="p-3.5">
+            <div class="font-medium">${esc(job.Customer)}</div>
+            <div class="text-xs text-slate-500">PO: ${esc(job.No_PO)}</div>
+          </td>
+          <td class="p-3.5 text-xs">
+            <div><b>Teknisi:</b> ${esc(job.Teknisi_Assigned || '-')}</div>
+            ${jadwalInfo}
+          </td>
+          <td class="p-3.5">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${badgeColor}">${esc(job.Status_Alur)}</span>
+            <div class="text-[11px] text-slate-500 mt-1">Update: ${fmtDateTime(latestDate)}</div>
+            ${st.batches.length > 0 ? `<div class="text-[11px] text-sky-700 font-medium mt-0.5">Kirim bertahap: ${st.batches.length}x</div>` : ''}
+            ${Number(job.Revisi_Count) > 0 ? `<div class="text-[11px] text-amber-600 font-semibold mt-0.5">Revisi ke-${esc(job.Revisi_Count)}</div>` : ''}
+            ${job.Catatan_Hold ? `<div class="text-[11px] text-red-600 mt-0.5">Hold: ${esc(job.Catatan_Hold)}</div>` : ''}
+          </td>
+          <td class="p-3.5 text-xs space-y-1">
+            ${folder ? `<div><a href="${esc(folder)}" target="_blank" rel="noopener noreferrer" class="inline-block bg-sky-600 text-white px-2.5 py-1 rounded font-medium hover:bg-sky-700">📂 Buka / Download Paket Arsip</a></div>` : '-'}
+          </td>
+          <td class="p-3.5 text-right">${getActionButton(job)}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  function actBtn(job, mode, label) {
+    return `<button data-act="action" data-mode="${mode}" data-id="${esc(job.Job_ID)}" class="btn-sky px-3 py-1.5 rounded text-xs font-semibold">${label}</button>`;
+  }
+
+  function getActionButton(job) {
+    const r = currentUser.role;
+    const s = job.Status_Alur;
+    const A = r === 'ADMINISTRATOR';
+    const parts = [];
+
+    if ((A || r === 'LEADER') && s === 'WAITING_LEADER') parts.push(actBtn(job, 'ASSIGN_LEADER', 'Jadwalkan & Buat QR'));
+    else if ((A || r === 'TEKNISI') && (s === 'ON_PROGRESS_TEKNISI' || s === 'HOLD_REVISION')) {
+      parts.push(actBtn(job, 'SUBMIT_TEKNISI', s === 'HOLD_REVISION' ? 'Upload Revisi Dokumen' : 'Upload Job Report'));
+    } else if ((A || r === 'ADMIN_PENGIRIMAN') && s === 'HANDOVER_ADMIN_PENGIRIMAN') {
+      parts.push(actBtn(job, 'PROCESS_ADMIN_PENGIRIMAN', 'Terima QR / Hold'));
+    } else if ((A || r === 'SHIPPING') && s === 'READY_SHIPPING') {
+      parts.push(actBtn(job, 'CONFIRM_SHIPPING', 'Konfirmasi Kirim'));
+    } else if ((A || r === 'PURCHASING') && s === 'READY_BILLING') {
+      parts.push(actBtn(job, 'BILLING_PURCHASING', 'Verifikasi Tagih / Hold'));
+    } else if (s === 'CLOSED_ARCHIVED') {
+      parts.push(`<span class="text-xs text-emerald-600 font-bold">✓ SELESAI & TERSIMPAN</span>`);
+    } else {
+      parts.push(`<span class="text-xs text-slate-400">Menunggu Tahap Lain</span>`);
+    }
+
+    if (job.Jenis_Pekerjaan === 'Service Kontrak' && (A || r === 'LEADER')) {
+      parts.push(`<button data-act="action" data-mode="EDIT_SCHEDULES" data-id="${esc(job.Job_ID)}" class="mt-1 inline-block bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-2.5 py-1 rounded text-[11px] font-semibold">📅 Atur Jadwal K1-K3</button>`);
+    }
+
+    if ((job.Jenis_Pekerjaan === 'Kalibrasi' || getInstrStats(job).total > 1) &&
+        (A || ['SHIPPING', 'ADMIN_PENGIRIMAN', 'PURCHASING'].includes(r)) &&
+        s !== 'CLOSED_ARCHIVED') {
+      parts.push(`<button data-act="action" data-mode="PARTIAL_SHIPPING" data-id="${esc(job.Job_ID)}" class="mt-1 inline-block bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-1 rounded text-[11px] font-semibold">📦 Kirim Bertahap</button>`);
+    }
+
+    if (A) {
+      parts.push(`<button data-act="action" data-mode="ADMIN_OVERRIDE" data-id="${esc(job.Job_ID)}" class="mt-1 inline-block bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-[11px] font-semibold">⚙ Koreksi Admin</button>`);
+    }
+
+    return `<div class="flex flex-col items-end">${parts.join('')}</div>`;
+  }
+
+  /* ---------- VIEW JOB DETAIL (RIWAYAT TANGGAL SETIAP ALUR, AUDIT LOG & INSTRUMEN) ---------- */
+  async function openViewJobModal(job) {
+    const seq = ++viewJobSeq;
+    const st = getInstrStats(job);
+    $('viewJobTitle').innerText = `${job.Job_ID} — ${job.Customer}`;
+    $('viewJobSubtitle').innerText = `${job.Jenis_Pekerjaan} | No. PO: ${job.No_PO} | Status: ${job.Status_Alur}`;
+
+    const timeline = [
+      { tahap: '1. Input Quotation & PO (Admin/Sales)', tgl: job.Tanggal_Input_Alur || job.Tanggal_Input, ket: `PO: ${job.No_PO} | Nilai: Rp ${Number(job.Nilai_PO || 0).toLocaleString('id-ID')}` },
+      { tahap: '2. Penjadwalan & QR Code (Leader)', tgl: job.Tanggal_Jadwal_QR, ket: `Teknisi: ${job.Teknisi_Assigned || '-'}` },
+      { tahap: '3. Serah Terima Dokumen Teknisi', tgl: job.Tanggal_Serah_Teknisi, ket: `Instrumen selesai: ${st.done} dari ${st.total}` },
+      { tahap: '4. Verifikasi & Invoice (Admin Pengiriman)', tgl: job.Tanggal_Admin_Pengiriman, ket: job.Link_Invoice_Faktur ? 'Invoice/Faktur terlampir' : 'Menunggu/Belum ada' },
+      { tahap: '5. Pengiriman Dokumen (Shipping)', tgl: job.Tanggal_Kirim_Shipping, ket: `Resi utama: ${job.Resi_Shipping || '-'}` },
+      { tahap: '6. Hold / Revisi Dokumen', tgl: job.Tanggal_Hold_Revisi, ket: Number(job.Revisi_Count) > 0 ? `Revisi ke-${job.Revisi_Count}: ${job.Catatan_Hold || '-'}` : 'Tidak ada hold' },
+      { tahap: '7. Pembayaran Lunas & Close Arsip (Purchasing)', tgl: job.Tanggal_Close_Lunas, ket: job.Status_Alur === 'CLOSED_ARCHIVED' ? 'Arsip lengkap tersimpan' : 'Belum close' }
+    ];
+
+    const schedulesHtml = job.Jenis_Pekerjaan === 'Service Kontrak'
+      ? `<div class="bg-sky-50 border border-sky-200 rounded-xl p-3">
+           <div class="font-bold text-sky-900 text-xs uppercase mb-2">Jadwal Kunjungan Service Kontrak (1 Tahun)</div>
+           <div class="grid grid-cols-3 gap-2 text-xs">
+             <div class="bg-white p-2 rounded border"><b>Kunjungan 1 (Service):</b><br>${fmtDate(job.Jadwal_1)}</div>
+             <div class="bg-white p-2 rounded border"><b>Kunjungan 2 (Service):</b><br>${fmtDate(job.Jadwal_2)}</div>
+             <div class="bg-white p-2 rounded border"><b>Kunjungan 3 (Kalibrasi PQ):</b><br>${fmtDate(job.Jadwal_3)}</div>
+           </div>
+         </div>`
+      : '';
+
+    const instrHtml = (job.Jenis_Pekerjaan === 'Kalibrasi' || st.total > 1)
+      ? `<div class="bg-sky-50 border border-sky-200 rounded-xl p-3 space-y-2">
+           <div class="font-bold text-sky-900 text-xs uppercase">Monitoring Instrumen & Pengiriman Bertahap</div>
+           <div class="grid grid-cols-3 gap-2 text-xs text-center">
+             <div class="bg-white p-2 rounded border">Total Instrumen<br><b class="text-base text-sky-900">${st.total}</b></div>
+             <div class="bg-white p-2 rounded border">Sudah Dikerjakan<br><b class="text-base text-emerald-700">${st.done}</b></div>
+             <div class="bg-white p-2 rounded border">Belum Dikerjakan<br><b class="text-base text-amber-700">${st.rem}</b></div>
+           </div>
+           <div class="text-xs font-semibold text-sky-900 pt-1">Riwayat Kirim Bertahap ke Customer (${st.batches.length}x):</div>
+           ${st.batches.length === 0
+             ? '<p class="text-xs text-slate-500">Belum ada pengiriman bertahap yang dicatat.</p>'
+             : `<ul class="space-y-1 text-xs">
+                  ${st.batches.map(b => `
+                    <li class="bg-white p-2 rounded border flex justify-between items-center gap-2">
+                      <div>
+                        <b>Tahap ${esc(b.tahap)}</b> (${fmtDateTime(b.tanggal)}) — ${esc(b.instrumen || '-')}
+                        ${b.resi ? `<span class="text-slate-500">| Resi: ${esc(b.resi)}</span>` : ''}
+                      </div>
+                      ${safeUrl(b.fileUrl) ? `<a href="${esc(safeUrl(b.fileUrl))}" target="_blank" class="text-sky-600 underline shrink-0">Lihat PDF</a>` : ''}
+                    </li>`).join('')}
+                </ul>`}
+         </div>`
+      : '';
+
+    const docLinks = [
+      { label: 'Quotation (PDF)', url: job.Link_Quotation },
+      { label: 'PO Customer (PDF)', url: job.Link_PO },
+      { label: 'Job Report 1', url: job.Link_Report_1 },
+      { label: 'Job Report 2', url: job.Link_Report_2 },
+      { label: 'Job Report 3', url: job.Link_Report_3 },
+      { label: 'Dokumen IQOQ / PQ', url: job.Link_IQOQ_PQ },
+      { label: 'Invoice & Faktur Pajak', url: job.Link_Invoice_Faktur },
+      { label: 'Folder Arsip Lengkap', url: job.Folder_Arsip_URL }
+    ].filter(d => safeUrl(d.url));
+
+    $('viewJobBody').innerHTML = `
+      <div class="bg-slate-50 border rounded-xl p-3 text-xs space-y-1">
+        <div><b>Deskripsi Quotation:</b> ${esc(job.Deskripsi_Quotation || '-')}</div>
+        <div><b>Terakhir Diperbarui Oleh:</b> ${esc(job.Last_Updated_By || '-')}</div>
+      </div>
+      ${schedulesHtml}
+      ${instrHtml}
+      <div>
+        <div class="font-bold text-sky-900 text-xs uppercase mb-2">Tanggal Setiap Tahapan Alur</div>
+        <div class="border rounded-xl divide-y text-xs">
+          ${timeline.map(t => `
+            <div class="p-2.5 flex flex-wrap justify-between items-center gap-2">
+              <div>
+                <div class="font-semibold text-slate-800">${esc(t.tahap)}</div>
+                <div class="text-slate-500">${esc(t.ket)}</div>
+              </div>
+              <div class="font-semibold text-sky-800">${fmtDateTime(t.tgl)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="font-bold text-sky-900 text-xs uppercase mb-2">📜 Audit Log Aktivitas Job (Jam & Tanggal)</div>
+        <div id="jobAuditLogBox" class="border border-sky-200 rounded-xl p-3 bg-sky-50/40 text-xs">
+          <div class="text-sky-600 py-2 text-center">Memuat audit log job ${esc(job.Job_ID)}...</div>
+        </div>
+      </div>
+      <div>
+        <div class="font-bold text-sky-900 text-xs uppercase mb-2">Tautan Dokumen Tersimpan</div>
+        <div class="flex flex-wrap gap-2">
+          ${docLinks.length
+            ? docLinks.map(d => `<a href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener noreferrer" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-3 py-1.5 rounded-lg text-xs font-semibold">📄 ${esc(d.label)}</a>`).join('')
+            : '<span class="text-xs text-slate-400">Belum ada dokumen.</span>'}
+        </div>
+      </div>
+    `;
+    openModal('modalViewJob');
+
+    try {
+      const res = await api({ action: 'getLogs', jobId: job.Job_ID });
+      if (seq !== viewJobSeq) return;
+      const box = $('jobAuditLogBox');
+      if (!box) return;
+      if (res.status !== 'success') {
+        box.innerHTML = `<div class="text-red-600">${esc(res.message || 'Gagal memuat audit log.')}</div>`;
+        return;
+      }
+      const logs = (res.logs || []).filter(l => !l.jobId || String(l.jobId) === String(job.Job_ID));
+      if (!logs.length) {
+        box.innerHTML = '<div class="text-slate-500">Belum ada catatan audit log untuk pekerjaan ini.</div>';
+        return;
+      }
+      box.innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse bg-white rounded-lg overflow-hidden">
+            <thead>
+              <tr class="bg-sky-100 text-sky-900 text-[11px]">
+                <th class="p-2">Jam & Tanggal</th>
+                <th class="p-2">User</th>
+                <th class="p-2">Aksi</th>
+                <th class="p-2">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y text-xs">
+              ${logs.map(l => `
+                <tr>
+                  <td class="p-2 font-semibold text-sky-900 whitespace-nowrap">${esc(fmtDateTime(l.timestamp))}</td>
+                  <td class="p-2 whitespace-nowrap">${esc(l.user)} <span class="text-slate-500">(${esc(l.role)})</span></td>
+                  <td class="p-2 font-medium text-slate-800">${esc(l.aksi)}</td>
+                  <td class="p-2 text-slate-600">${esc(l.keterangan)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    } catch (err) {
+      if (seq !== viewJobSeq) return;
+      const box = $('jobAuditLogBox');
+      if (box) box.innerHTML = `<div class="text-red-600">${esc(err.message)}</div>`;
+    }
+  }
+
+  /* ---------- Buat job ---------- */
+  $('createJobForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const btn = $('btnSubmitJob');
+    busy = true;
+    btn.disabled = true;
+    btn.innerText = 'Mengunggah ke Google Drive...';
+    try {
+      const fq = $('inFileQuot').files[0], fp = $('inFilePO').files[0];
+      if (!fq || !fp) throw new Error('Quotation dan PO wajib diunggah (PDF).');
+      checkPdf(fq, 'Quotation');
+      checkPdf(fp, 'PO Customer');
+      const res = await api({
+        action: 'createJob',
+        jenisPekerjaan: $('inJenis').value,
+        customer: $('inCustomer').value,
+        noPO: $('inNoPO').value,
+        totalInstrumen: $('inTotalInstr').value,
+        nilaiPO: $('inNilaiPO').value,
+        deskripsi: $('inDeskripsi').value,
+        fileQuotation: await toBase64(fq),
+        filePO: await toBase64(fp)
+      });
+      alert(res.message);
+      if (res.status === 'success') {
+        $('createJobForm').reset();
+        closeModal('modalCreateJob');
+        loadJobs();
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      busy = false;
+      btn.disabled = false;
+      btn.innerText = 'Simpan & Teruskan ke Leader';
+    }
+  });
+
+  /* ---------- Modal aksi per role ---------- */
+  function requiredDocs(jenis) {
+    const doc = label => ({ id: 'actIQOQPQ', field: 'fileIQOQPQ', key: 'Link_IQOQ_PQ', label });
+    const r = (n, label) => ({ id: 'actRep' + n, field: 'fileReport' + n, key: 'Link_Report_' + n, label });
+    if (jenis === 'Instalasi') return [r(1, 'Job Report'), doc('Dokumen IQOQ')];
+    if (jenis === 'Kalibrasi') return [r(1, 'Job Report'), doc('Dokumen PQ')];
+    if (jenis === 'Service Kontrak') {
+      return [r(1, 'Job Report Kunjungan 1 (Service)'), r(2, 'Job Report Kunjungan 2 (Service)'),
+              r(3, 'Job Report Kunjungan 3 (Kalibrasi)'), doc('Dokumen PQ')];
+    }
+    return [r(1, 'Job Report')];
+  }
+
+  function openActionModal(job, mode) {
+    const body = $('actionModalBody');
+    $('actionModalTitle').innerText = `${job.Job_ID} - ${job.Customer}`;
+    const jid = esc(job.Job_ID);
+    const go = (stage, label, cls = 'btn-sky py-2 rounded font-semibold') =>
+      `<button type="button" data-submit="${stage}" data-id="${jid}" class="w-full ${cls}">${label}</button>`;
+
+    if (mode === 'ASSIGN_LEADER') {
+      const isKontrak = job.Jenis_Pekerjaan === 'Service Kontrak';
+      body.innerHTML = `
+        <label class="block text-xs font-semibold">Pilih Teknisi (1-11)</label>
+        <select id="actTeknisi" class="w-full border rounded p-2">
+          ${Array.from({ length: 11 }, (_, i) => `<option value="teknisi${i + 1}">Teknisi ${i + 1} (teknisi${i + 1})</option>`).join('')}
+        </select>
+        <label class="block text-xs font-semibold">Jadwal Kunjungan 1 ${isKontrak ? '(Service ke-1 - Opsional/Fleksibel)' : '(Wajib)'}</label>
+        <input type="date" id="actJadwal1" value="${toDateInput(job.Jadwal_1)}" class="w-full border rounded p-2">
+        ${isKontrak ? `
+          <label class="block text-xs font-semibold">Jadwal Kunjungan 2 (Service ke-2 - Opsional/Fleksibel)</label>
+          <input type="date" id="actJadwal2" value="${toDateInput(job.Jadwal_2)}" class="w-full border rounded p-2">
+          <label class="block text-xs font-semibold">Jadwal Kunjungan 3 (Kalibrasi PQ - Opsional/Fleksibel)</label>
+          <input type="date" id="actJadwal3" value="${toDateInput(job.Jadwal_3)}" class="w-full border rounded p-2">` : ''}
+        ${go('ASSIGN_LEADER', 'Terbitkan Jadwal & QR Code')}`;
+    }
+
+    if (mode === 'EDIT_SCHEDULES') {
+      body.innerHTML = `
+        <p class="text-xs text-slate-600">Jadwal kunjungan 1, 2, dan 3 bersifat fleksibel: dapat diisi bertahap atau diedit kapan saja sesuai jadwal lapangan.</p>
+        <label class="block text-xs font-semibold">Jadwal Kunjungan 1 (Service)</label>
+        <input type="date" id="schJadwal1" value="${toDateInput(job.Jadwal_1)}" class="w-full border rounded p-2">
+        <label class="block text-xs font-semibold">Jadwal Kunjungan 2 (Service)</label>
+        <input type="date" id="schJadwal2" value="${toDateInput(job.Jadwal_2)}" class="w-full border rounded p-2">
+        <label class="block text-xs font-semibold">Jadwal Kunjungan 3 (Kalibrasi PQ)</label>
+        <input type="date" id="schJadwal3" value="${toDateInput(job.Jadwal_3)}" class="w-full border rounded p-2">
+        ${go('UPDATE_SCHEDULES', 'Simpan Jadwal Kunjungan')}`;
+    }
+
+    if (mode === 'PARTIAL_SHIPPING') {
+      const st = getInstrStats(job);
+      body.innerHTML = `
+        <p class="text-xs text-slate-600">Catat pengiriman dokumen/sertifikat bertahap ke customer (Total instrumen: <b>${st.total}</b>, Selesai: <b>${st.done}</b>, Sisa: <b>${st.rem}</b>).</p>
+        <label class="block text-xs font-semibold">Instrumen / Item yang Dikirim pada Tahap Ini</label>
+        <input type="text" id="partInstr" placeholder="Contoh: Sertifikat PQ Instrumen #1 & #2" class="w-full border rounded p-2 text-xs">
+        <label class="block text-xs font-semibold">Nomor Resi / Bukti Kirim Tahap Ini</label>
+        <input type="text" id="partResi" placeholder="Contoh: JNE-112233 / Kurir" class="w-full border rounded p-2 text-xs">
+        <label class="block text-xs font-semibold">Upload Dokumen Tahap Ini (PDF - Opsional)</label>
+        <input type="file" id="partFile" accept="application/pdf" class="w-full text-xs">
+        <label class="block text-xs font-semibold">Catatan Tambahan</label>
+        <input type="text" id="partNote" placeholder="Opsional..." class="w-full border rounded p-2 text-xs">
+        ${go('PARTIAL_SHIPPING', 'Simpan Pengiriman Bertahap')}`;
+    }
+
+    if (mode === 'SUBMIT_TEKNISI') {
+      const isRev = job.Status_Alur === 'HOLD_REVISION';
+      const st = getInstrStats(job);
+      const showInstrCounter = job.Jenis_Pekerjaan === 'Kalibrasi' || st.total > 1;
+      body.innerHTML = `
+        ${isRev && job.Catatan_Hold ? `<div class="text-xs bg-red-50 border border-red-200 text-red-700 rounded p-2"><b>Catatan revisi:</b> ${esc(job.Catatan_Hold)}</div>` : ''}
+        ${showInstrCounter ? `
+          <div class="bg-sky-50 border border-sky-200 rounded-lg p-2.5 space-y-1">
+            <label class="block text-xs font-semibold text-sky-900">Jumlah Instrumen Sudah Dikerjakan (dari ${st.total} instrumen)</label>
+            <input type="number" id="actInstrDone" min="0" max="${st.total}" value="${st.done}" class="w-full border rounded p-1.5 text-xs bg-white">
+          </div>` : ''}
+        ${requiredDocs(job.Jenis_Pekerjaan).map(d => `
+          <label class="block text-xs font-semibold">Upload ${esc(d.label)} (PDF)</label>
+          <input type="file" id="${d.id}" accept="application/pdf" class="w-full text-xs">
+          ${safeUrl(job[d.key]) ? `<div class="text-[11px] text-emerald-600">Sudah terunggah. ${isRev ? 'Pilih file hanya jika dokumen ini direvisi.' : ''}</div>` : ''}`).join('')}
+        ${go('SUBMIT_TEKNISI', 'Serahkan ke Admin Pengiriman (QR)')}`;
+    }
+
+    if (mode === 'PROCESS_ADMIN_PENGIRIMAN') {
+      body.innerHTML = `
+        <p class="text-xs text-slate-600">Scan QR Code dari Teknisi (atau tempel kode QR secara manual), pastikan dokumen teknisi lengkap.</p>
+        <label class="block text-xs font-semibold">Kode QR Serah Terima</label>
+        <div class="flex gap-2">
+          <input type="text" id="actQR" placeholder="PRIDHANA-EKA|PE-2026-0001|PO:..." class="flex-1 border rounded p-2 text-xs">
+          <button type="button" id="btnScan" class="bg-sky-100 text-sky-800 px-3 rounded text-xs font-semibold">📷 Scan</button>
+        </div>
+        <div id="scanBox" class="hidden w-full"></div>
+        <label class="block text-xs font-semibold">Upload Invoice & Faktur Pajak (PDF)</label>
+        <input type="file" id="actInvoice" accept="application/pdf" class="w-full text-xs">
+        ${safeUrl(job.Link_Invoice_Faktur) ? '<div class="text-[11px] text-emerald-600">Invoice sudah terunggah sebelumnya.</div>' : ''}
+        ${go('PROCESS_ADMIN_PENGIRIMAN', 'Valid & Teruskan ke Shipping')}
+        <hr>
+        <label class="block text-xs font-semibold text-red-600">Jika Dokumen Salah / Perlu Revisi Teknisi:</label>
+        <input type="text" id="actHoldNote" maxlength="300" placeholder="Tulis alasan revisi untuk teknisi..." class="w-full border border-red-200 rounded p-2 text-xs">
+        ${go('HOLD_REVISION', 'Hold & Kembalikan ke Teknisi', 'bg-red-600 text-white py-2 rounded text-xs font-semibold')}`;
+      $('btnScan').addEventListener('click', startScan);
+    }
+
+    if (mode === 'CONFIRM_SHIPPING') {
+      body.innerHTML = `
+        <label class="block text-xs font-semibold">Nomor Resi / Bukti Pengiriman Dokumen</label>
+        <input type="text" id="actResi" maxlength="100" placeholder="Contoh: JNE-882910 / Kurir Internal" class="w-full border rounded p-2">
+        ${go('CONFIRM_SHIPPING', 'Konfirmasi Terkirim ke Purchasing')}`;
+    }
+
+    if (mode === 'BILLING_PURCHASING') {
+      body.innerHTML = `
+        <p class="text-xs text-slate-600">Verifikasi kelengkapan dokumen sebelum atau sesudah pembayaran diterima.</p>
+        ${go('CLOSE_PAID', 'Pembayaran Lunas & Close Arsip', 'bg-emerald-600 text-white py-2 rounded font-semibold')}
+        <hr>
+        <label class="block text-xs font-semibold text-red-600">Ada Revisi Dokumen Saat Penagihan?</label>
+        <input type="text" id="actHoldNote" maxlength="300" placeholder="Contoh: Tanggal kalibrasi di PQ salah..." class="w-full border border-red-200 rounded p-2 text-xs">
+        ${go('HOLD_REVISION', 'Hold Penagihan & Revisi Teknisi', 'bg-red-600 text-white py-2 rounded text-xs font-semibold')}`;
+    }
+
+    if (mode === 'ADMIN_OVERRIDE') {
+      body.innerHTML = `
+        <p class="text-xs text-slate-600">Koreksi status alur atau Nomor PO oleh Administrator.</p>
+        <label class="block text-xs font-semibold">Status Alur</label>
+        <select id="ovStatus" class="w-full border rounded p-2 text-xs">
+          <option value="WAITING_LEADER">WAITING_LEADER</option>
+          <option value="ON_PROGRESS_TEKNISI">ON_PROGRESS_TEKNISI</option>
+          <option value="HANDOVER_ADMIN_PENGIRIMAN">HANDOVER_ADMIN_PENGIRIMAN</option>
+          <option value="HOLD_REVISION">HOLD_REVISION</option>
+          <option value="READY_SHIPPING">READY_SHIPPING</option>
+          <option value="READY_BILLING">READY_BILLING</option>
+          <option value="CLOSED_ARCHIVED">CLOSED_ARCHIVED</option>
+        </select>
+        <label class="block text-xs font-semibold">Koreksi Nomor PO</label>
+        <input type="text" id="ovPO" value="${esc(job.No_PO)}" class="w-full border rounded p-2 text-xs">
+        ${go('ADMIN_OVERRIDE_STATUS', 'Simpan Koreksi Admin')}
+        <hr>
+        <button type="button" data-del="${jid}" class="w-full bg-red-600 text-white py-2 rounded text-xs font-semibold">🗑 Hapus Permanen Job Ini</button>`;
+      $('ovStatus').value = job.Status_Alur;
+    }
+
+    openModal('modalAction');
+  }
+
+  async function submitStage(jobId, stageAction, btn) {
+    if (busy) return;
+    const job = allJobs.find(j => j.Job_ID === jobId);
+    if (!job) return alert('Data job tidak ditemukan. Silakan refresh.');
+    busy = true;
+    const oldLabel = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Memproses...';
+
+    try {
+      let res;
+      if (stageAction === 'UPDATE_SCHEDULES') {
+        res = await api({
+          action: 'updateSchedules',
+          jobId,
+          jadwal1: $('schJadwal1').value,
+          jadwal2: $('schJadwal2').value,
+          jadwal3: $('schJadwal3').value
+        });
+      } else if (stageAction === 'PARTIAL_SHIPPING') {
+        const pf = $('partFile').files[0];
+        if (pf) checkPdf(pf, 'Dokumen Pengiriman Bertahap');
+        res = await api({
+          action: 'sendPartialBatch',
+          jobId,
+          instrumenInfo: $('partInstr').value.trim(),
+          resiBatch: $('partResi').value.trim(),
+          catatanBatch: $('partNote').value.trim(),
+          fileBatch: pf ? await toBase64(pf) : ''
+        });
+      } else {
+        const payload = { action: 'updateStage', jobId, stageAction };
+        if (stageAction === 'ASSIGN_LEADER') {
+          payload.teknisi = $('actTeknisi').value;
+          payload.jadwal1 = $('actJadwal1').value;
+          payload.jadwal2 = $('actJadwal2')?.value || '';
+          payload.jadwal3 = $('actJadwal3')?.value || '';
+          if (job.Jenis_Pekerjaan !== 'Service Kontrak' && !payload.jadwal1) {
+            throw new Error('Jadwal kunjungan wajib diisi.');
+          }
+        }
+        if (stageAction === 'SUBMIT_TEKNISI') {
+          if ($('actInstrDone')) payload.instrumenSelesai = $('actInstrDone').value;
+          let newCount = 0;
+          for (const d of requiredDocs(job.Jenis_Pekerjaan)) {
+            const f = $(d.id)?.files[0];
+            if (f) { checkPdf(f, d.label); payload[d.field] = await toBase64(f); newCount++; }
+            else if (!safeUrl(job[d.key])) throw new Error(`Dokumen wajib belum dipilih: ${d.label}.`);
+          }
+          if (job.Status_Alur === 'HOLD_REVISION' && newCount === 0 && !payload.instrumenSelesai) {
+            throw new Error('Pilih minimal satu dokumen yang direvisi atau perbarui jumlah instrumen.');
+          }
+        }
+        if (stageAction === 'PROCESS_ADMIN_PENGIRIMAN') {
+          payload.qrCode = $('actQR').value.trim();
+          if (!payload.qrCode) throw new Error('Scan atau isi Kode QR terlebih dahulu.');
+          const f = $('actInvoice').files[0];
+          if (f) { checkPdf(f, 'Invoice'); payload.fileInvoice = await toBase64(f); }
+          else if (!safeUrl(job.Link_Invoice_Faktur)) throw new Error('Invoice & Faktur Pajak wajib diunggah.');
+        }
+        if (stageAction === 'HOLD_REVISION') {
+          payload.catatanHold = $('actHoldNote').value.trim();
+          if (!payload.catatanHold) throw new Error('Wajib mengisi catatan revisi!');
+        }
+        if (stageAction === 'CONFIRM_SHIPPING') {
+          payload.resiShipping = $('actResi').value.trim();
+          if (!payload.resiShipping) throw new Error('Nomor resi wajib diisi.');
+        }
+        if (stageAction === 'ADMIN_OVERRIDE_STATUS') {
+          payload.newStatus = $('ovStatus').value;
+          payload.newNoPO = $('ovPO').value.trim();
+        }
+        res = await api(payload);
+      }
+
+      alert(res.message);
+      if (res.status === 'success') {
+        closeModal('modalAction');
+        loadJobs();
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      busy = false;
+      btn.disabled = false;
+      btn.innerText = oldLabel;
+    }
+  }
+
+  async function deleteJob(jobId) {
+    if (!confirm(`Yakin ingin menghapus permanen ${jobId}?`)) return;
+    try {
+      const res = await api({ action: 'deleteJob', jobId });
+      alert(res.message);
+      if (res.status === 'success') {
+        closeModal('modalAction');
+        loadJobs();
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  /* ---------- Kelola User (Administrator) ---------- */
+  async function openManageUsersModal() {
+    $('adminExtraTitle').innerText = '👥 Manajemen Akun Pengguna (Administrator)';
+    $('adminExtraBody').innerHTML = `
+      <form id="saveUserForm" class="grid grid-cols-1 md:grid-cols-5 gap-2 bg-sky-50 p-3 rounded-xl border border-sky-200">
+        <input type="text" id="nuUser" placeholder="Username" required class="border rounded p-2 bg-white">
+        <input type="text" id="nuPass" placeholder="Password" required class="border rounded p-2 bg-white">
+        <input type="text" id="nuName" placeholder="Nama Lengkap" required class="border rounded p-2 bg-white">
+        <select id="nuRole" class="border rounded p-2 bg-white">
+          <option value="ADMINISTRATOR">ADMINISTRATOR</option>
+          <option value="ADMIN_SALES">ADMIN_SALES</option>
+          <option value="LEADER">LEADER</option>
+          <option value="TEKNISI">TEKNISI</option>
+          <option value="ADMIN_PENGIRIMAN">ADMIN_PENGIRIMAN</option>
+          <option value="SHIPPING">SHIPPING</option>
+          <option value="PURCHASING">PURCHASING</option>
+          <option value="MANAGEMENT">MANAGEMENT</option>
+        </select>
+        <div class="flex gap-1">
+          <select id="nuStatus" class="border rounded p-2 bg-white w-full">
+            <option value="AKTIF">AKTIF</option>
+            <option value="NONAKTIF">NONAKTIF</option>
+          </select>
+          <button type="submit" class="btn-sky px-3 rounded font-semibold">Simpan</button>
+        </div>
+      </form>
+      <div id="usersListWrap" class="text-center py-3 text-sky-600">Memuat daftar akun...</div>
+    `;
+    openModal('modalAdminExtra');
+
+    $('saveUserForm').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      try {
+        const res = await api({
+          action: 'saveUser',
+          targetUsername: $('nuUser').value.trim(),
+          targetPassword: $('nuPass').value,
+          targetNama: $('nuName').value.trim(),
+          targetRole: $('nuRole').value,
+          targetStatus: $('nuStatus').value
+        });
+        alert(res.message);
+        if (res.status === 'success') openManageUsersModal();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    try {
+      const res = await api({ action: 'getUsers' });
+      if (res.status !== 'success') throw new Error(res.message);
+      $('usersListWrap').innerHTML = `
+        <table class="w-full text-left border-collapse">
+          <thead><tr class="bg-sky-100 text-sky-900"><th class="p-2">Username</th><th class="p-2">Nama</th><th class="p-2">Role</th><th class="p-2">Status</th><th class="p-2 text-right">Edit</th></tr></thead>
+          <tbody class="divide-y">
+            ${res.users.map(u => `
+              <tr>
+                <td class="p-2 font-semibold">${esc(u.username)}</td>
+                <td class="p-2">${esc(u.nama)}</td>
+                <td class="p-2">${esc(u.role)}</td>
+                <td class="p-2">${esc(u.status)}</td>
+                <td class="p-2 text-right"><button type="button" data-pick-user='${esc(JSON.stringify(u))}' class="text-sky-600 underline">Pilih</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+      $('usersListWrap').addEventListener('click', ev => {
+        const b = ev.target.closest('button[data-pick-user]');
+        if (!b) return;
+        const u = JSON.parse(b.dataset.pickUser);
+        $('nuUser').value = u.username;
+        $('nuPass').value = u.password;
+        $('nuName').value = u.nama;
+        $('nuRole').value = u.role;
+        $('nuStatus').value = u.status;
+      });
+    } catch (err) {
+      $('usersListWrap').innerHTML = `<span class="text-red-600">${esc(err.message)}</span>`;
+    }
+  }
+
+  /* ---------- QR ---------- */
+  async function showQR(jobId) {
+    $('qrTitle').innerText = `QR Code: ${jobId}`;
+    const container = $('qrcodeContainer');
+    container.innerHTML = '<span class="text-xs text-sky-600">Memuat...</span>';
+    $('qrText').innerText = '';
+    openModal('modalQR');
+    try {
+      const res = await api({ action: 'getQR', jobId });
+      if (res.status !== 'success') throw new Error(res.message);
+      container.innerHTML = '';
+      if (typeof QRCode !== 'undefined') new QRCode(container, { text: res.qr, width: 180, height: 180 });
+      else container.innerHTML = '<span class="text-xs text-amber-600">Pustaka QR gagal dimuat. Gunakan kode teks di bawah.</span>';
+      $('qrText').innerText = res.qr;
+    } catch (err) {
+      container.innerHTML = `<span class="text-xs text-red-600">${esc(err.message)}</span>`;
+    }
+  }
+
+  async function startScan() {
+    if (typeof Html5Qrcode === 'undefined') return alert('Pemindai kamera tidak tersedia. Ketik/tempel kode QR secara manual.');
+    const box = $('scanBox');
+    box.classList.remove('hidden');
+    box.innerHTML = '';
+    scanner = new Html5Qrcode('scanBox');
+    try {
+      await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 200 },
+        text => { $('actQR').value = text; stopScan(); }, () => {});
+    } catch (e) {
+      alert('Kamera tidak dapat dibuka. Izinkan akses kamera atau isi kode QR secara manual.');
+      stopScan();
+    }
+  }
+
+  async function stopScan() {
+    if (scanner) {
+      try { await scanner.stop(); scanner.clear(); } catch (e) {}
+      scanner = null;
+    }
+    const box = $('scanBox');
+    if (box) box.classList.add('hidden');
+  }
+
+  /* ---------- Event delegation ---------- */
+  $('jobsTableBody').addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    if (b.dataset.act === 'qr') return showQR(b.dataset.id);
+    const job = allJobs.find(j => j.Job_ID === b.dataset.id);
+    if (!job) return;
+    if (b.dataset.act === 'view') return openViewJobModal(job);
+    openActionModal(job, b.dataset.mode);
+  });
+  $('actionModalBody').addEventListener('click', e => {
+    const sub = e.target.closest('button[data-submit]');
+    if (sub) return submitStage(sub.dataset.id, sub.dataset.submit, sub);
+    const del = e.target.closest('button[data-del]');
+    if (del) deleteJob(del.dataset.del);
+  });
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-close]');
+    if (c) closeModal(c.dataset.close);
+  });
+  $('catBar').addEventListener('click', e => {
+    const b = e.target.closest('button[data-cat]');
+    if (b) filterCategory(b.dataset.cat);
+  });
+  $('btnNewJobModal').addEventListener('click', () => openModal('modalCreateJob'));
+  $('btnRefresh').addEventListener('click', loadJobs);
+  $('btnLogout').addEventListener('click', logout);
+  $('btnExport').addEventListener('click', exportJobsToCSV);
+  $('btnManageUsers').addEventListener('click', openManageUsersModal);
+
+  (function restoreSession() {
+    try {
+      const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      if (s && s.token && s.user) { token = s.token; currentUser = s.user; enterDashboard(); }
+    } catch (e) {}
+  })();
+</script>
+</body>
+</html>
