@@ -200,6 +200,23 @@
     </div>
   </div>
 
+  <!-- MODAL 4: VIEW DETAIL ISI ALUR JOB -->
+  <div id="modalViewJob" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="font-bold text-sky-900 text-base" id="viewJobTitle">Detail Pekerjaan</h3>
+          <p class="text-xs text-slate-500" id="viewJobSubtitle"></p>
+        </div>
+        <button type="button" data-close="modalViewJob" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+      </div>
+      <div id="viewJobBody" class="space-y-4 text-sm"></div>
+      <div class="pt-2 border-t flex justify-end">
+        <button type="button" data-close="modalViewJob" class="bg-sky-100 hover:bg-sky-200 text-sky-800 px-4 py-2 rounded-lg text-xs font-semibold">Tutup Detail</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   const API_URL = 'https://script.google.com/macros/s/AKfycbx93b1GP8KCQAFImwspZYZZL8WevKOYmLiT8xYZRWR9_mv6U7Vb-ceWDvModV2niq0/exec';
   const SESSION_KEY = 'pridhana_session';
@@ -406,7 +423,12 @@
           <td class="p-3.5 text-xs space-y-1">
             ${folder ? `<div><a href="${esc(folder)}" target="_blank" rel="noopener noreferrer" class="inline-block bg-sky-600 text-white px-2.5 py-1 rounded font-medium hover:bg-sky-700">📂 Buka / Download Paket Arsip</a></div>` : '-'}
           </td>
-          <td class="p-3.5 text-right">${getActionButton(job)}</td>
+          <td class="p-3.5 text-right">
+            <div class="flex flex-col items-end gap-1.5">
+              <button data-act="view" data-id="${esc(job.Job_ID)}" class="bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-3 py-1 rounded text-xs font-semibold">👁 View Job</button>
+              <div>${getActionButton(job)}</div>
+            </div>
+          </td>
         </tr>`;
     }).join('');
   }
@@ -660,13 +682,118 @@
     if (box) box.classList.add('hidden');
   }
 
+  /* ---------- View Detail Isi Alur Job ---------- */
+  function viewJobDetail(job) {
+    $('viewJobTitle').innerText = `${job.Job_ID} — ${job.Customer}`;
+    $('viewJobSubtitle').innerText = `${job.Jenis_Pekerjaan} • No. PO: ${job.No_PO}`;
+
+    const steps = [
+      { key: 'WAITING_LEADER', label: '1. Input Quotation & PO (Admin/Sales)', desc: 'Dokumen Quotation & PO terverifikasi masuk.' },
+      { key: 'ON_PROGRESS_TEKNISI', label: '2. Penjadwalan & QR Code (Leader)', desc: `Teknisi: ${job.Teknisi_Assigned || '-'} | Jadwal 1: ${fmtDate(job.Jadwal_1)}` },
+      { key: 'HANDOVER_ADMIN_PENGIRIMAN', label: '3. Pengerjaan & Serah Terima QR (Teknisi)', desc: 'Upload Job Report & dokumen teknis (IQOQ/PQ).' },
+      { key: 'READY_SHIPPING', label: '4. Verifikasi QR & Invoice/Faktur (Admin Pengiriman)', desc: 'Kelengkapan invoice & faktur pajak siap kirim.' },
+      { key: 'READY_BILLING', label: '5. Pengiriman Dokumen (Shipping)', desc: `Resi / Bukti Kirim: ${job.Resi_Shipping || '-'}` },
+      { key: 'CLOSED_ARCHIVED', label: '6. Penagihan & Arsip Selesai (Purchasing)', desc: 'Pembayaran lunas dan seluruh arsip tersimpan.' }
+    ];
+
+    const orderMap = {
+      'WAITING_LEADER': 0,
+      'ON_PROGRESS_TEKNISI': 1,
+      'HOLD_REVISION': 2,
+      'HANDOVER_ADMIN_PENGIRIMAN': 2,
+      'READY_SHIPPING': 3,
+      'READY_BILLING': 4,
+      'CLOSED_ARCHIVED': 5
+    };
+    const currentIdx = orderMap[job.Status_Alur] ?? 0;
+
+    const docLinks = [
+      { label: '📄 Quotation (PDF)', url: safeUrl(job.Link_Quotation) },
+      { label: '📄 PO Customer (PDF)', url: safeUrl(job.Link_PO) },
+      { label: '📄 Job Report 1 (PDF)', url: safeUrl(job.Link_JobReport_1 || job.Link_Report_1) },
+      { label: '📄 Job Report 2 (PDF)', url: safeUrl(job.Link_JobReport_2 || job.Link_Report_2) },
+      { label: '📄 Job Report 3 (PDF)', url: safeUrl(job.Link_JobReport_3 || job.Link_Report_3) },
+      { label: '📄 Dokumen IQOQ / PQ (PDF)', url: safeUrl(job.Link_IQOQ_PQ) },
+      { label: '📄 Invoice & Faktur Pajak (PDF)', url: safeUrl(job.Link_Invoice || job.Link_Invoice_Faktur) }
+    ].filter(d => d.url);
+
+    const folderUrl = safeUrl(job.Folder_Arsip_URL);
+    const nilaiFormatted = job.Nilai_PO ? 'Rp ' + Number(job.Nilai_PO).toLocaleString('id-ID') : '-';
+
+    $('viewJobBody').innerHTML = `
+      ${job.Status_Alur === 'HOLD_REVISION' ? `
+        <div class="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs">
+          <b>⚠ STATUS HOLD / REVISI (Revisi ke-${esc(job.Revisi_Count || 1)}):</b><br>
+          ${esc(job.Catatan_Hold || 'Menunggu perbaikan dokumen oleh teknisi.')}
+        </div>` : ''}
+
+      <div class="grid grid-cols-2 gap-3 bg-sky-50/70 border border-sky-100 p-3.5 rounded-xl text-xs">
+        <div><span class="text-slate-500">Tanggal Input:</span><br><b>${fmtDate(job.Tanggal || job.Tanggal_Input)}</b></div>
+        <div><span class="text-slate-500">Nilai PO:</span><br><b>${esc(nilaiFormatted)}</b></div>
+        <div><span class="text-slate-500">Teknisi Ditugaskan:</span><br><b>${esc(job.Teknisi_Assigned || '-')}</b></div>
+        <div><span class="text-slate-500">No. Resi Shipping:</span><br><b>${esc(job.Resi_Shipping || '-')}</b></div>
+        ${job.Jenis_Pekerjaan === 'Service Kontrak' ? `
+          <div class="col-span-2 pt-1 border-t border-sky-200/60">
+            <span class="text-slate-500">Jadwal 3x Kunjungan:</span><br>
+            <b>K1:</b> ${fmtDate(job.Jadwal_1)} &nbsp;|&nbsp; <b>K2:</b> ${fmtDate(job.Jadwal_2)} &nbsp;|&nbsp; <b>K3 (Kalibrasi):</b> ${fmtDate(job.Jadwal_3)}
+          </div>` : `
+          <div class="col-span-2 pt-1 border-t border-sky-200/60">
+            <span class="text-slate-500">Jadwal Pekerjaan:</span> <b>${fmtDate(job.Jadwal_1)}</b>
+          </div>`}
+        <div class="col-span-2 pt-1 border-t border-sky-200/60">
+          <span class="text-slate-500">Deskripsi Pekerjaan:</span><br>
+          <span class="text-slate-800">${esc(job.Deskripsi_Quotation || '-')}</span>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="font-bold text-xs uppercase text-sky-900 mb-2">Progres Tahapan Alur</h4>
+        <div class="space-y-2">
+          ${steps.map((st, idx) => {
+            const done = idx < currentIdx || job.Status_Alur === 'CLOSED_ARCHIVED';
+            const active = idx === currentIdx && job.Status_Alur !== 'CLOSED_ARCHIVED';
+            const isHoldStep = active && job.Status_Alur === 'HOLD_REVISION';
+            const dotClass = done ? 'bg-emerald-500 text-white' : isHoldStep ? 'bg-red-500 text-white' : active ? 'bg-sky-600 text-white' : 'bg-slate-200 text-slate-500';
+            const rowClass = done ? 'bg-emerald-50/50 border-emerald-200' : isHoldStep ? 'bg-red-50 border-red-200' : active ? 'bg-sky-50 border-sky-300' : 'bg-white border-slate-100 opacity-65';
+            return `
+              <div class="flex items-start gap-3 p-2.5 rounded-lg border ${rowClass}">
+                <div class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 ${dotClass}">
+                  ${done ? '✓' : isHoldStep ? '!' : idx + 1}
+                </div>
+                <div class="text-xs">
+                  <div class="font-semibold text-slate-800">${esc(st.label)}</div>
+                  <div class="text-slate-500">${esc(st.desc)}</div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div>
+        <h4 class="font-bold text-xs uppercase text-sky-900 mb-2">Dokumen Terlampir</h4>
+        ${docLinks.length ? `
+          <div class="flex flex-wrap gap-2">
+            ${docLinks.map(d => `<a href="${esc(d.url)}" target="_blank" rel="noopener noreferrer" class="text-xs bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 px-3 py-1.5 rounded-lg font-medium">${esc(d.label)}</a>`).join('')}
+          </div>` : '<p class="text-xs text-slate-400">Belum ada file dokumen individual yang terdeteksi.</p>'}
+        ${folderUrl ? `
+          <div class="mt-3">
+            <a href="${esc(folderUrl)}" target="_blank" rel="noopener noreferrer" class="inline-block bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg">📂 Buka Folder Arsip Google Drive</a>
+          </div>` : ''}
+      </div>
+    `;
+
+    openModal('modalViewJob');
+  }
+
   /* ---------- Event delegation (tanpa onclick inline) ---------- */
   $('jobsTableBody').addEventListener('click', e => {
     const b = e.target.closest('button[data-act]');
     if (!b) return;
     if (b.dataset.act === 'qr') return showQR(b.dataset.id);
     const job = allJobs.find(j => j.Job_ID === b.dataset.id);
-    if (job) openActionModal(job, b.dataset.mode);
+    if (!job) return;
+    if (b.dataset.act === 'view') return viewJobDetail(job);
+    openActionModal(job, b.dataset.mode);
   });
   $('actionModalBody').addEventListener('click', e => {
     const b = e.target.closest('button[data-submit]');
