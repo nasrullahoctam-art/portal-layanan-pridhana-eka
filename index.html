@@ -269,8 +269,8 @@
     $('loginSection').classList.add('hidden');
     $('dashboardSection').classList.remove('hidden');
     $('userBadge').innerText = `${currentUser.nama} (${currentUser.role})`;
-    if (currentUser.role === 'ADMIN_SALES') $('btnNewJobModal').classList.remove('hidden');
-    if (currentUser.role === 'MANAGEMENT') $('managementPanel').classList.remove('hidden');
+    if (['ADMIN_SALES', 'ADMINISTRATOR'].includes(currentUser.role)) $('btnNewJobModal').classList.remove('hidden');
+    if (['MANAGEMENT', 'ADMINISTRATOR'].includes(currentUser.role)) $('managementPanel').classList.remove('hidden');
     updateCategoryButtons();
     loadJobs();
   }
@@ -330,7 +330,7 @@
   }
 
   function updateManagementStats(jobsList) {
-    if (!currentUser || currentUser.role !== 'MANAGEMENT') return;
+    if (!currentUser || !['MANAGEMENT', 'ADMINISTRATOR'].includes(currentUser.role)) return;
     const total = jobsList.length;
     const hold = jobsList.filter(j => j.Status_Alur === 'HOLD_REVISION').length;
     const closed = jobsList.filter(j => j.Status_Alur === 'CLOSED_ARCHIVED').length;
@@ -418,13 +418,14 @@
   function getActionButton(job) {
     const r = currentUser.role;
     const s = job.Status_Alur;
-    if (r === 'LEADER' && s === 'WAITING_LEADER') return actBtn(job, 'ASSIGN_LEADER', 'Jadwalkan & Buat QR');
-    if (r === 'TEKNISI' && (s === 'ON_PROGRESS_TEKNISI' || s === 'HOLD_REVISION')) {
+    const A = r === 'ADMINISTRATOR'; // Administrator: akses semua tahap
+    if ((A || r === 'LEADER') && s === 'WAITING_LEADER') return actBtn(job, 'ASSIGN_LEADER', 'Jadwalkan & Buat QR');
+    if ((A || r === 'TEKNISI') && (s === 'ON_PROGRESS_TEKNISI' || s === 'HOLD_REVISION')) {
       return actBtn(job, 'SUBMIT_TEKNISI', s === 'HOLD_REVISION' ? 'Upload Revisi Dokumen' : 'Upload Job Report');
     }
-    if (r === 'ADMIN_PENGIRIMAN' && s === 'HANDOVER_ADMIN_PENGIRIMAN') return actBtn(job, 'PROCESS_ADMIN_PENGIRIMAN', 'Terima QR / Hold');
-    if (r === 'SHIPPING' && s === 'READY_SHIPPING') return actBtn(job, 'CONFIRM_SHIPPING', 'Konfirmasi Kirim');
-    if (r === 'PURCHASING' && s === 'READY_BILLING') return actBtn(job, 'BILLING_PURCHASING', 'Verifikasi Tagih / Hold');
+    if ((A || r === 'ADMIN_PENGIRIMAN') && s === 'HANDOVER_ADMIN_PENGIRIMAN') return actBtn(job, 'PROCESS_ADMIN_PENGIRIMAN', 'Terima QR / Hold');
+    if ((A || r === 'SHIPPING') && s === 'READY_SHIPPING') return actBtn(job, 'CONFIRM_SHIPPING', 'Konfirmasi Kirim');
+    if ((A || r === 'PURCHASING') && s === 'READY_BILLING') return actBtn(job, 'BILLING_PURCHASING', 'Verifikasi Tagih / Hold');
     if (s === 'CLOSED_ARCHIVED') return `<span class="text-xs text-emerald-600 font-bold">✓ SELESAI & TERSIMPAN</span>`;
     return `<span class="text-xs text-slate-400">Menunggu Tahap Lain</span>`;
   }
