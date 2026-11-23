@@ -232,7 +232,7 @@
   </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbx93b1GP8KCQAFImwspZYZZL8WevKOYmLiT8xYZRWR9_mv6U7Vb-ceWDvModV2niq0/exec';
+  const API_URL = 'GANTI_DENGAN_WEB_APP_URL_APPS_SCRIPT_ANDA';
   const SESSION_KEY = 'pridhana_session';
   const MAX_FILE_BYTES = 7 * 1024 * 1024;
 
@@ -406,12 +406,10 @@
       'Nilai_PO', 'Teknisi_Assigned', 'Status_Alur', 'Revisi_Count', 'Catatan_Hold', 'Resi_Shipping', 'Folder_Arsip_URL'];
     const cell = v => {
       let s = String(v ?? '');
-      if (/^[=+\-@	
-]/.test(s)) s = "'" + s;
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
       return `"${s.replace(/"/g, '""')}"`;
     };
-    const csv = [headers.join(','), ...data.map(r => headers.map(h => cell(r[h])).join(','))].join('
-');
+    const csv = [headers.join(','), ...data.map(r => headers.map(h => cell(r[h])).join(','))].join('\r\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
