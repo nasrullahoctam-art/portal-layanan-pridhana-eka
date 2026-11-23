@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PT. Pridhana Eka - Service & Calibration Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body { background-color: #f0f7ff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .card-white { background: #ffffff; border: 1px solid #dbeafe; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08); }
+    .btn-sky { background-color: #0284c7; color: white; transition: 0.2s; }
+    .btn-sky:hover { background-color: #0369a1; }
+    .btn-sky:disabled, button:disabled { opacity: .6; cursor: not-allowed; }
+  </style>
+</head>
+<body class="text-slate-800">
+
+  <!-- HALAMAN LOGIN -->
+  <div id="loginSection" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-white via-sky-50 to-sky-100">
+    <div class="card-white rounded-2xl p-8 w-full max-w-md">
+      <div class="text-center mb-6">
+        <img src="logo.png" alt="Logo PT. Pridhana Eka" class="h-16 mx-auto mb-3 object-contain" onerror="this.style.display='none'">
+        <h1 class="text-xl font-bold text-sky-900">PT. PRIDHANA EKA</h1>
+        <p class="text-sm text-sky-600">Sistem Manajemen Layanan Jasa & Arsip Terpadu</p>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-sky-900 uppercase mb-1">Username</label>
+          <input type="text" id="username" required autocomplete="username" placeholder="Contoh: sales1 / leader1 / teknisi1 / management1" class="w-full px-4 py-2.5 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-400">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-sky-900 uppercase mb-1">Password</label>
+          <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-400">
+        </div>
+        <button type="submit" id="btnLogin" class="w-full btn-sky font-semibold py-2.5 rounded-lg shadow-sm">Masuk ke Sistem</button>
+      </form>
+      <p id="loginMsg" class="text-center text-red-500 text-xs mt-3"></p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD UTAMA -->
+  <div id="dashboardSection" class="hidden min-h-screen flex flex-col">
+    <header class="bg-white border-b border-sky-200 px-6 py-3 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo" class="h-10 object-contain" onerror="this.style.display='none'">
+        <div>
+          <h2 class="font-bold text-sky-900 text-base leading-tight">PT. PRIDHANA EKA</h2>
+          <span id="userBadge" class="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-medium"></span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="btnRefresh" class="text-xs bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-3 py-1.5 rounded-lg font-medium">↻ Refresh Data</button>
+        <button id="btnLogout" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium">Keluar</button>
+      </div>
+    </header>
+
+    <main class="p-6 max-w-7xl mx-auto w-full space-y-6">
+      <!-- PANEL MONITORING KHUSUS MANAGEMENT -->
+      <div id="managementPanel" class="hidden space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-sky-600 font-semibold">Total Pekerjaan</div>
+            <div id="statTotal" class="text-2xl font-bold text-sky-900 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-sky-600 font-semibold">Dalam Proses</div>
+            <div id="statActive" class="text-2xl font-bold text-sky-700 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-red-600 font-semibold">Hold / Revisi</div>
+            <div id="statHold" class="text-2xl font-bold text-red-600 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-amber-600 font-semibold">Siap Tagih / Kirim</div>
+            <div id="statBilling" class="text-2xl font-bold text-amber-600 mt-1">0</div>
+          </div>
+          <div class="card-white rounded-xl p-4">
+            <div class="text-xs text-emerald-600 font-semibold">Closed & Terarsip</div>
+            <div id="statClosed" class="text-2xl font-bold text-emerald-600 mt-1">0</div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap justify-between items-center bg-white border border-sky-200 rounded-xl px-4 py-3 gap-2">
+          <span class="text-xs font-semibold text-sky-900">📊 Rekapitulasi Monitoring Pekerjaan PT. Pridhana Eka</span>
+          <button id="btnExport" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg">
+            ⬇ Export Rekap (.CSV / Excel)
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Kategori Layanan -->
+      <div class="flex flex-wrap justify-between items-center gap-4">
+        <div id="catBar" class="flex flex-wrap gap-2">
+          <button data-cat="ALL" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Semua Layanan</button>
+          <button data-cat="Instalasi" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Instalasi (IQOQ)</button>
+          <button data-cat="Kalibrasi" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Kalibrasi (PQ)</button>
+          <button data-cat="Service Kontrak" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Service Kontrak (3x)</button>
+          <button data-cat="Service" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold">Service Reguler</button>
+        </div>
+        <button id="btnNewJobModal" class="hidden btn-sky text-xs font-semibold px-4 py-2 rounded-lg shadow">+ Input Permintaan & PO Baru</button>
+      </div>
+
+      <!-- Tabel Monitoring Alur -->
+      <div class="card-white rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-sky-50 border-b border-sky-200 text-sky-900 text-xs uppercase">
+                <th class="p-3.5">Job ID & QR</th>
+                <th class="p-3.5">Layanan</th>
+                <th class="p-3.5">Customer & No. PO</th>
+                <th class="p-3.5">Teknisi & Jadwal</th>
+                <th class="p-3.5">Status Alur</th>
+                <th class="p-3.5">Dokumen & Arsip</th>
+                <th class="p-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="jobsTableBody" class="divide-y divide-sky-100 text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: INPUT QUOTATION & PO (ADMIN/SALES) -->
+  <div id="modalCreateJob" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sky-900">Input Quotation & Verifikasi PO</h3>
+        <button type="button" data-close="modalCreateJob" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <form id="createJobForm" class="space-y-3 text-sm">
+        <div>
+          <label class="font-semibold text-xs text-sky-900">Jenis Pekerjaan</label>
+          <select id="inJenis" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+            <option value="Instalasi">Instalasi (Wajib Job Report + IQOQ)</option>
+            <option value="Kalibrasi">Kalibrasi (Wajib Job Report + PQ)</option>
+            <option value="Service Kontrak">Service Kontrak (2x Service + 1x Kalibrasi PQ)</option>
+            <option value="Service">Service Reguler (Job Report)</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Nama Customer</label>
+            <input type="text" id="inCustomer" required maxlength="120" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+          </div>
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Nomor PO (Anti-Double)</label>
+            <input type="text" id="inNoPO" required maxlength="60" placeholder="PO-2026-XXX" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold text-xs text-sky-900">Nilai PO (Rp)</label>
+          <input type="number" id="inNilaiPO" required min="1" class="w-full border border-sky-200 rounded-lg p-2 mt-1">
+        </div>
+        <div>
+          <label class="font-semibold text-xs text-sky-900">Deskripsi Quotation</label>
+          <textarea id="inDeskripsi" rows="2" required maxlength="500" class="w-full border border-sky-200 rounded-lg p-2 mt-1"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Upload Quotation (PDF, maks 7 MB)</label>
+            <input type="file" id="inFileQuot" accept="application/pdf" required class="w-full text-xs mt-1">
+          </div>
+          <div>
+            <label class="font-semibold text-xs text-sky-900">Upload PO Customer (PDF, maks 7 MB)</label>
+            <input type="file" id="inFilePO" accept="application/pdf" required class="w-full text-xs mt-1">
+          </div>
+        </div>
+        <div class="bg-sky-50 p-3 rounded-lg border border-sky-200 flex items-start gap-2">
+          <input type="checkbox" id="chkVerifyPO" required class="mt-1">
+          <label for="chkVerifyPO" class="text-xs text-sky-900">Saya menyatakan telah memeriksa kesesuaian harga, item alat, dan syarat pembayaran antara <b>Quotation</b> dan <b>PO Customer</b>.</label>
+        </div>
+        <button type="submit" id="btnSubmitJob" class="w-full btn-sky py-2.5 rounded-lg font-semibold">Simpan & Teruskan ke Leader</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: QR CODE VIEWER -->
+  <div id="modalQR" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-xs w-full p-6 text-center space-y-4">
+      <h3 class="font-bold text-sky-900" id="qrTitle">QR Code Serah Terima</h3>
+      <div id="qrcodeContainer" class="flex justify-center p-3 bg-white border border-sky-100 rounded-xl min-h-[120px] items-center"></div>
+      <p id="qrText" class="text-[10px] text-slate-400 break-all select-all"></p>
+      <p class="text-xs text-slate-500">Gunakan QR Code ini saat serah terima dokumen fisik & digital ke Admin Pengiriman. QR akan diverifikasi oleh sistem.</p>
+      <button type="button" data-close="modalQR" class="w-full bg-sky-100 text-sky-800 py-2 rounded-lg text-xs font-semibold">Tutup</button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: ACTION MODAL DINAMIS SESUAI ROLE -->
+  <div id="modalAction" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sky-900" id="actionModalTitle">Proses Pekerjaan</h3>
+        <button type="button" data-close="modalAction" class="text-slate-400">✕</button>
+      </div>
+      <div id="actionModalBody" class="space-y-3 text-sm"></div>
+    </div>
+  </div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx93b1GP8KCQAFImwspZYZZL8WevKOYmLiT8xYZRWR9_mv6U7Vb-ceWDvModV2niq0/exec';
+  const SESSION_KEY = 'pridhana_session';
+  const MAX_FILE_BYTES = 7 * 1024 * 1024;
+
+  let currentUser = null;
+  let token = null;
+  let allJobs = [];
+  let currentFilter = 'ALL';
+  let busy = false;
+  let scanner = null;
+
+  /* ---------- Utilitas ---------- */
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safeUrl = u => /^https:\/\/(drive|docs)\.google\.com\//.test(String(u || '')) ? String(u) : '';
+  const fmtDate = v => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v || ''));
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '-';
+  };
+  const saveSession = () => { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, user: currentUser })); } catch (e) {} };
+  const clearSession = () => { try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {} };
+
+  const toBase64 = file => new Promise((resolve, reject) => {
+    if (!file) return resolve('');
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Gagal membaca file.'));
+    reader.readAsDataURL(file);
+  });
+
+  function checkPdf(file, label) {
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) throw new Error(`File "${label}" harus berformat PDF.`);
+    if (file.size > MAX_FILE_BYTES) throw new Error(`File "${label}" melebihi batas 7 MB.`);
+  }
+
+  async function api(payload) {
+    if (!API_URL || API_URL.indexOf('GANTI_') === 0) throw new Error('API_URL di index.html belum diisi dengan Web App URL Apps Script.');
+    let res;
+    try {
+      // Tanpa header Content-Type => "simple request", tidak memicu preflight CORS (Apps Script tidak mendukung preflight).
+      res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ ...payload, token }) });
+    } catch (e) {
+      throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet atau API_URL.');
+    }
+    let json;
+    try { json = await res.json(); }
+    catch (e) { throw new Error('Respons server tidak valid. Pastikan Web App sudah di-deploy dengan akses "Anyone".'); }
+    if (json.code === 'AUTH') {
+      clearSession();
+      alert(json.message);
+      location.reload();
+      throw new Error(json.message);
+    }
+    return json;
+  }
+
+  /* ---------- Modal ---------- */
+  function openModal(id) { $(id).classList.remove('hidden'); }
+  function closeModal(id) {
+    if (id === 'modalAction') stopScan();
+    $(id).classList.add('hidden');
+  }
+
+  /* ---------- Login / Sesi ---------- */
+  function enterDashboard() {
+    $('loginSection').classList.add('hidden');
+    $('dashboardSection').classList.remove('hidden');
+    $('userBadge').innerText = `${currentUser.nama} (${currentUser.role})`;
+    if (currentUser.role === 'ADMIN_SALES') $('btnNewJobModal').classList.remove('hidden');
+    if (currentUser.role === 'MANAGEMENT') $('managementPanel').classList.remove('hidden');
+    updateCategoryButtons();
+    loadJobs();
+  }
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('btnLogin');
+    $('loginMsg').innerText = '';
+    btn.innerText = 'Memverifikasi...';
+    btn.disabled = true;
+    try {
+      const res = await api({ action: 'login', username: $('username').value.trim(), password: $('password').value });
+      if (res.status === 'success') {
+        currentUser = res.user;
+        token = res.token;
+        saveSession();
+        enterDashboard();
+      } else {
+        $('loginMsg').innerText = res.message;
+      }
+    } catch (err) {
+      $('loginMsg').innerText = err.message;
+    } finally {
+      btn.innerText = 'Masuk ke Sistem';
+      btn.disabled = false;
+    }
+  });
+
+  function logout() { clearSession(); location.reload(); }
+
+  /* ---------- Data & tabel ---------- */
+  async function loadJobs() {
+    const tbody = $('jobsTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-sky-600">Memuat data dari Google Drive & Sheets...</td></tr>';
+    try {
+      const res = await api({ action: 'getJobs' });
+      if (res.status !== 'success') throw new Error(res.message || 'Gagal memuat data.');
+      allJobs = res.jobs;
+      renderTable();
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-red-600">${esc(err.message)}</td></tr>`;
+    }
+  }
+
+  function filterCategory(cat) {
+    currentFilter = cat;
+    updateCategoryButtons();
+    renderTable();
+  }
+
+  function updateCategoryButtons() {
+    document.querySelectorAll('.cat-btn').forEach(b => {
+      const on = b.dataset.cat === currentFilter;
+      b.className = 'cat-btn px-4 py-1.5 rounded-full text-xs font-semibold ' +
+        (on ? 'bg-sky-600 text-white' : 'bg-white text-sky-700 border border-sky-200');
+    });
+  }
+
+  function updateManagementStats(jobsList) {
+    if (!currentUser || currentUser.role !== 'MANAGEMENT') return;
+    const total = jobsList.length;
+    const hold = jobsList.filter(j => j.Status_Alur === 'HOLD_REVISION').length;
+    const closed = jobsList.filter(j => j.Status_Alur === 'CLOSED_ARCHIVED').length;
+    const billing = jobsList.filter(j =>
+      ['HANDOVER_ADMIN_PENGIRIMAN', 'READY_SHIPPING', 'READY_BILLING'].includes(j.Status_Alur)
+    ).length;
+    const active = Math.max(0, total - hold - closed - billing);
+    $('statTotal').innerText = total;
+    $('statActive').innerText = active;
+    $('statHold').innerText = hold;
+    $('statBilling').innerText = billing;
+    $('statClosed').innerText = closed;
+  }
+
+  function exportJobsToCSV() {
+    const data = currentFilter === 'ALL' ? allJobs : allJobs.filter(j => j.Jenis_Pekerjaan === currentFilter);
+    if (!data.length) return alert('Tidak ada data untuk di-export.');
+    const headers = ['Job_ID', 'Tanggal', 'Jenis_Pekerjaan', 'Customer', 'No_PO', 'Nilai_PO',
+      'Teknisi_Assigned', 'Status_Alur', 'Revisi_Count', 'Catatan_Hold', 'Resi_Shipping', 'Folder_Arsip_URL'];
+    const cell = v => {
+      let s = String(v ?? '');
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // cegah formula injection di Excel
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    const csv = [headers.join(','), ...data.map(r => headers.map(h => cell(r[h])).join(','))].join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Rekap_Monitoring_Pridhana_Eka_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function renderTable() {
+    const tbody = $('jobsTableBody');
+    const filtered = currentFilter === 'ALL' ? allJobs : allJobs.filter(j => j.Jenis_Pekerjaan === currentFilter);
+    updateManagementStats(filtered);
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada data pekerjaan.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(job => {
+      const isHold = job.Status_Alur === 'HOLD_REVISION';
+      const isClosed = job.Status_Alur === 'CLOSED_ARCHIVED';
+      const badgeColor = isClosed ? 'bg-emerald-100 text-emerald-700' : isHold ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700';
+      const folder = safeUrl(job.Folder_Arsip_URL);
+      return `
+        <tr class="hover:bg-sky-50/60">
+          <td class="p-3.5">
+            <div class="font-bold text-sky-900">${esc(job.Job_ID)}</div>
+            <button data-act="qr" data-id="${esc(job.Job_ID)}" class="text-xs text-sky-600 underline mt-1">Lihat QR Code</button>
+          </td>
+          <td class="p-3.5">
+            <span class="font-semibold text-slate-800">${esc(job.Jenis_Pekerjaan)}</span>
+            <p class="text-xs text-slate-500 truncate max-w-[180px]" title="${esc(job.Deskripsi_Quotation)}">${esc(job.Deskripsi_Quotation)}</p>
+          </td>
+          <td class="p-3.5">
+            <div class="font-medium">${esc(job.Customer)}</div>
+            <div class="text-xs text-slate-500">PO: ${esc(job.No_PO)}</div>
+          </td>
+          <td class="p-3.5 text-xs">
+            <div><b>Teknisi:</b> ${esc(job.Teknisi_Assigned || '-')}</div>
+            <div><b>Jadwal:</b> ${fmtDate(job.Jadwal_1)}</div>
+          </td>
+          <td class="p-3.5">
+            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${badgeColor}">${esc(job.Status_Alur)}</span>
+            ${Number(job.Revisi_Count) > 0 ? `<div class="text-[11px] text-amber-600 font-semibold mt-1">Revisi ke-${esc(job.Revisi_Count)}</div>` : ''}
+            ${job.Catatan_Hold ? `<div class="text-[11px] text-red-600 mt-1">Hold: ${esc(job.Catatan_Hold)}</div>` : ''}
+          </td>
+          <td class="p-3.5 text-xs space-y-1">
+            ${folder ? `<div><a href="${esc(folder)}" target="_blank" rel="noopener noreferrer" class="inline-block bg-sky-600 text-white px-2.5 py-1 rounded font-medium hover:bg-sky-700">📂 Buka / Download Paket Arsip</a></div>` : '-'}
+          </td>
+          <td class="p-3.5 text-right">${getActionButton(job)}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  function actBtn(job, mode, label) {
+    return `<button data-act="action" data-mode="${mode}" data-id="${esc(job.Job_ID)}" class="btn-sky px-3 py-1.5 rounded text-xs font-semibold">${label}</button>`;
+  }
+
+  function getActionButton(job) {
+    const r = currentUser.role;
+    const s = job.Status_Alur;
+    if (r === 'LEADER' && s === 'WAITING_LEADER') return actBtn(job, 'ASSIGN_LEADER', 'Jadwalkan & Buat QR');
+    if (r === 'TEKNISI' && (s === 'ON_PROGRESS_TEKNISI' || s === 'HOLD_REVISION')) {
+      return actBtn(job, 'SUBMIT_TEKNISI', s === 'HOLD_REVISION' ? 'Upload Revisi Dokumen' : 'Upload Job Report');
+    }
+    if (r === 'ADMIN_PENGIRIMAN' && s === 'HANDOVER_ADMIN_PENGIRIMAN') return actBtn(job, 'PROCESS_ADMIN_PENGIRIMAN', 'Terima QR / Hold');
+    if (r === 'SHIPPING' && s === 'READY_SHIPPING') return actBtn(job, 'CONFIRM_SHIPPING', 'Konfirmasi Kirim');
+    if (r === 'PURCHASING' && s === 'READY_BILLING') return actBtn(job, 'BILLING_PURCHASING', 'Verifikasi Tagih / Hold');
+    if (s === 'CLOSED_ARCHIVED') return `<span class="text-xs text-emerald-600 font-bold">✓ SELESAI & TERSIMPAN</span>`;
+    return `<span class="text-xs text-slate-400">Menunggu Tahap Lain</span>`;
+  }
+
+  /* ---------- Buat job ---------- */
+  $('createJobForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const btn = $('btnSubmitJob');
+    busy = true;
+    btn.disabled = true;
+    btn.innerText = 'Mengunggah ke Google Drive...';
+    try {
+      const fq = $('inFileQuot').files[0], fp = $('inFilePO').files[0];
+      if (!fq || !fp) throw new Error('Quotation dan PO wajib diunggah (PDF).');
+      checkPdf(fq, 'Quotation');
+      checkPdf(fp, 'PO Customer');
+      const res = await api({
+        action: 'createJob',
+        jenisPekerjaan: $('inJenis').value,
+        customer: $('inCustomer').value,
+        noPO: $('inNoPO').value,
+        nilaiPO: $('inNilaiPO').value,
+        deskripsi: $('inDeskripsi').value,
+        fileQuotation: await toBase64(fq),
+        filePO: await toBase64(fp)
+      });
+      alert(res.message);
+      if (res.status === 'success') {
+        $('createJobForm').reset();
+        closeModal('modalCreateJob');
+        loadJobs();
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      busy = false;
+      btn.disabled = false;
+      btn.innerText = 'Simpan & Teruskan ke Leader';
+    }
+  });
+
+  /* ---------- Modal aksi per role ---------- */
+  function requiredDocs(jenis) {
+    const doc = label => ({ id: 'actIQOQPQ', field: 'fileIQOQPQ', key: 'Link_IQOQ_PQ', label });
+    const r = (n, label) => ({ id: 'actRep' + n, field: 'fileReport' + n, key: 'Link_JobReport_' + n, label });
+    if (jenis === 'Instalasi') return [r(1, 'Job Report'), doc('Dokumen IQOQ')];
+    if (jenis === 'Kalibrasi') return [r(1, 'Job Report'), doc('Dokumen PQ')];
+    if (jenis === 'Service Kontrak') {
+      return [r(1, 'Job Report Kunjungan 1 (Service)'), r(2, 'Job Report Kunjungan 2 (Service)'),
+              r(3, 'Job Report Kunjungan 3 (Kalibrasi)'), doc('Dokumen PQ')];
+    }
+    return [r(1, 'Job Report')];
+  }
+
+  function openActionModal(job, mode) {
+    const body = $('actionModalBody');
+    $('actionModalTitle').innerText = `${job.Job_ID} - ${job.Customer}`;
+    const jid = esc(job.Job_ID);
+    const go = (stage, label, cls = 'btn-sky py-2 rounded font-semibold') =>
+      `<button type="button" data-submit="${stage}" data-id="${jid}" class="w-full ${cls}">${label}</button>`;
+
+    if (mode === 'ASSIGN_LEADER') {
+      const isKontrak = job.Jenis_Pekerjaan === 'Service Kontrak';
+      body.innerHTML = `
+        <label class="block text-xs font-semibold">Pilih Teknisi (1-11)</label>
+        <select id="actTeknisi" class="w-full border rounded p-2">
+          ${Array.from({ length: 11 }, (_, i) => `<option value="teknisi${i + 1}">Teknisi ${i + 1} (teknisi${i + 1})</option>`).join('')}
+        </select>
+        <label class="block text-xs font-semibold">Jadwal Kunjungan 1</label>
+        <input type="date" id="actJadwal1" class="w-full border rounded p-2">
+        ${isKontrak ? `
+          <label class="block text-xs font-semibold">Jadwal Kunjungan 2 (Service ke-2)</label>
+          <input type="date" id="actJadwal2" class="w-full border rounded p-2">
+          <label class="block text-xs font-semibold">Jadwal Kunjungan 3 (Kalibrasi PQ)</label>
+          <input type="date" id="actJadwal3" class="w-full border rounded p-2">` : ''}
+        ${go('ASSIGN_LEADER', 'Terbitkan Jadwal & QR Code')}`;
+    }
+
+    if (mode === 'SUBMIT_TEKNISI') {
+      const isRev = job.Status_Alur === 'HOLD_REVISION';
+      body.innerHTML = `
+        ${isRev && job.Catatan_Hold ? `<div class="text-xs bg-red-50 border border-red-200 text-red-700 rounded p-2"><b>Catatan revisi:</b> ${esc(job.Catatan_Hold)}</div>` : ''}
+        ${requiredDocs(job.Jenis_Pekerjaan).map(d => `
+          <label class="block text-xs font-semibold">Upload ${esc(d.label)} (PDF)</label>
+          <input type="file" id="${d.id}" accept="application/pdf" class="w-full text-xs">
+          ${safeUrl(job[d.key]) ? `<div class="text-[11px] text-emerald-600">Sudah terunggah. ${isRev ? 'Pilih file hanya jika dokumen ini direvisi.' : ''}</div>` : ''}`).join('')}
+        ${go('SUBMIT_TEKNISI', 'Serahkan ke Admin Pengiriman (QR)')}`;
+    }
+
+    if (mode === 'PROCESS_ADMIN_PENGIRIMAN') {
+      body.innerHTML = `
+        <p class="text-xs text-slate-600">Scan QR Code dari Teknisi (atau tempel kode QR secara manual), pastikan dokumen teknisi lengkap.</p>
+        <label class="block text-xs font-semibold">Kode QR Serah Terima</label>
+        <div class="flex gap-2">
+          <input type="text" id="actQR" placeholder="PRIDHANA-EKA|PE-2026-0001|xxxxxxxxxxxx" class="flex-1 border rounded p-2 text-xs">
+          <button type="button" id="btnScan" class="bg-sky-100 text-sky-800 px-3 rounded text-xs font-semibold">📷 Scan</button>
+        </div>
+        <div id="scanBox" class="hidden w-full"></div>
+        <label class="block text-xs font-semibold">Upload Invoice & Faktur Pajak (PDF)</label>
+        <input type="file" id="actInvoice" accept="application/pdf" class="w-full text-xs">
+        ${safeUrl(job.Link_Invoice) ? '<div class="text-[11px] text-emerald-600">Invoice sudah terunggah sebelumnya.</div>' : ''}
+        ${go('PROCESS_ADMIN_PENGIRIMAN', 'Valid & Teruskan ke Shipping')}
+        <hr>
+        <label class="block text-xs font-semibold text-red-600">Jika Dokumen Salah / Perlu Revisi Teknisi:</label>
+        <input type="text" id="actHoldNote" maxlength="300" placeholder="Tulis alasan revisi untuk teknisi..." class="w-full border border-red-200 rounded p-2 text-xs">
+        ${go('HOLD_REVISION', 'Hold & Kembalikan ke Teknisi', 'bg-red-600 text-white py-2 rounded text-xs font-semibold')}`;
+      $('btnScan').addEventListener('click', startScan);
+    }
+
+    if (mode === 'CONFIRM_SHIPPING') {
+      body.innerHTML = `
+        <label class="block text-xs font-semibold">Nomor Resi / Bukti Pengiriman Dokumen</label>
+        <input type="text" id="actResi" maxlength="100" placeholder="Contoh: JNE-882910 / Kurir Internal" class="w-full border rounded p-2">
+        ${go('CONFIRM_SHIPPING', 'Konfirmasi Terkirim ke Purchasing')}`;
+    }
+
+    if (mode === 'BILLING_PURCHASING') {
+      body.innerHTML = `
+        <p class="text-xs text-slate-600">Verifikasi kelengkapan dokumen sebelum atau sesudah pembayaran diterima.</p>
+        ${go('CLOSE_PAID', 'Pembayaran Lunas & Close Arsip', 'bg-emerald-600 text-white py-2 rounded font-semibold')}
+        <hr>
+        <label class="block text-xs font-semibold text-red-600">Ada Revisi Dokumen Saat Penagihan?</label>
+        <input type="text" id="actHoldNote" maxlength="300" placeholder="Contoh: Tanggal kalibrasi di PQ salah..." class="w-full border border-red-200 rounded p-2 text-xs">
+        ${go('HOLD_REVISION', 'Hold Penagihan & Revisi Teknisi', 'bg-red-600 text-white py-2 rounded text-xs font-semibold')}`;
+    }
+
+    openModal('modalAction');
+  }
+
+  async function submitStage(jobId, stageAction, btn) {
+    if (busy) return;
+    const job = allJobs.find(j => j.Job_ID === jobId);
+    if (!job) return alert('Data job tidak ditemukan. Silakan refresh.');
+    const payload = { action: 'updateStage', jobId, stageAction };
+    busy = true;
+    const oldLabel = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Memproses...';
+    try {
+      if (stageAction === 'ASSIGN_LEADER') {
+        payload.teknisi = $('actTeknisi').value;
+        payload.jadwal1 = $('actJadwal1').value;
+        payload.jadwal2 = $('actJadwal2')?.value || '';
+        payload.jadwal3 = $('actJadwal3')?.value || '';
+        if (!payload.jadwal1) throw new Error('Jadwal kunjungan 1 wajib diisi.');
+        if (job.Jenis_Pekerjaan === 'Service Kontrak' && (!payload.jadwal2 || !payload.jadwal3)) {
+          throw new Error('Service Kontrak wajib mengisi ketiga jadwal kunjungan.');
+        }
+      }
+      if (stageAction === 'SUBMIT_TEKNISI') {
+        let newCount = 0;
+        for (const d of requiredDocs(job.Jenis_Pekerjaan)) {
+          const f = $(d.id)?.files[0];
+          if (f) { checkPdf(f, d.label); payload[d.field] = await toBase64(f); newCount++; }
+          else if (!safeUrl(job[d.key])) throw new Error(`Dokumen wajib belum dipilih: ${d.label}.`);
+        }
+        if (job.Status_Alur === 'HOLD_REVISION' && newCount === 0) throw new Error('Pilih minimal satu dokumen yang direvisi.');
+      }
+      if (stageAction === 'PROCESS_ADMIN_PENGIRIMAN') {
+        payload.qrCode = $('actQR').value.trim();
+        if (!payload.qrCode) throw new Error('Scan atau isi Kode QR terlebih dahulu.');
+        const f = $('actInvoice').files[0];
+        if (f) { checkPdf(f, 'Invoice'); payload.fileInvoice = await toBase64(f); }
+        else if (!safeUrl(job.Link_Invoice)) throw new Error('Invoice & Faktur Pajak wajib diunggah.');
+      }
+      if (stageAction === 'HOLD_REVISION') {
+        payload.catatanHold = $('actHoldNote').value.trim();
+        if (!payload.catatanHold) throw new Error('Wajib mengisi catatan revisi!');
+      }
+      if (stageAction === 'CONFIRM_SHIPPING') {
+        payload.resiShipping = $('actResi').value.trim();
+        if (!payload.resiShipping) throw new Error('Nomor resi wajib diisi.');
+      }
+
+      const res = await api(payload);
+      alert(res.message);
+      if (res.status === 'success') {
+        closeModal('modalAction');
+        loadJobs();
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      busy = false;
+      btn.disabled = false;
+      btn.innerText = oldLabel;
+    }
+  }
+
+  /* ---------- QR ---------- */
+  async function showQR(jobId) {
+    $('qrTitle').innerText = `QR Code: ${jobId}`;
+    const container = $('qrcodeContainer');
+    container.innerHTML = '<span class="text-xs text-sky-600">Memuat...</span>';
+    $('qrText').innerText = '';
+    openModal('modalQR');
+    try {
+      const res = await api({ action: 'getQR', jobId });
+      if (res.status !== 'success') throw new Error(res.message);
+      container.innerHTML = '';
+      if (typeof QRCode !== 'undefined') new QRCode(container, { text: res.qr, width: 180, height: 180 });
+      else container.innerHTML = '<span class="text-xs text-amber-600">Pustaka QR gagal dimuat. Gunakan kode teks di bawah.</span>';
+      $('qrText').innerText = res.qr;
+    } catch (err) {
+      container.innerHTML = `<span class="text-xs text-red-600">${esc(err.message)}</span>`;
+    }
+  }
+
+  async function startScan() {
+    if (typeof Html5Qrcode === 'undefined') return alert('Pemindai kamera tidak tersedia. Ketik/tempel kode QR secara manual.');
+    const box = $('scanBox');
+    box.classList.remove('hidden');
+    box.innerHTML = '';
+    box.id = 'scanBox';
+    scanner = new Html5Qrcode('scanBox');
+    try {
+      await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 200 },
+        text => { $('actQR').value = text; stopScan(); }, () => {});
+    } catch (e) {
+      alert('Kamera tidak dapat dibuka. Izinkan akses kamera atau isi kode QR secara manual.');
+      stopScan();
+    }
+  }
+
+  async function stopScan() {
+    if (scanner) {
+      try { await scanner.stop(); scanner.clear(); } catch (e) {}
+      scanner = null;
+    }
+    const box = $('scanBox');
+    if (box) box.classList.add('hidden');
+  }
+
+  /* ---------- Event delegation (tanpa onclick inline) ---------- */
+  $('jobsTableBody').addEventListener('click', e => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    if (b.dataset.act === 'qr') return showQR(b.dataset.id);
+    const job = allJobs.find(j => j.Job_ID === b.dataset.id);
+    if (job) openActionModal(job, b.dataset.mode);
+  });
+  $('actionModalBody').addEventListener('click', e => {
+    const b = e.target.closest('button[data-submit]');
+    if (b) submitStage(b.dataset.id, b.dataset.submit, b);
+  });
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-close]');
+    if (c) closeModal(c.dataset.close);
+  });
+  $('catBar').addEventListener('click', e => {
+    const b = e.target.closest('button[data-cat]');
+    if (b) filterCategory(b.dataset.cat);
+  });
+  $('btnNewJobModal').addEventListener('click', () => openModal('modalCreateJob'));
+  $('btnRefresh').addEventListener('click', loadJobs);
+  $('btnLogout').addEventListener('click', logout);
+  $('btnExport').addEventListener('click', exportJobsToCSV);
+
+  /* ---------- Pulihkan sesi saat halaman di-refresh ---------- */
+  (function restoreSession() {
+    try {
+      const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      if (s && s.token && s.user) { token = s.token; currentUser = s.user; enterDashboard(); }
+    } catch (e) {}
+  })();
+</script>
+</body>
+</html>
