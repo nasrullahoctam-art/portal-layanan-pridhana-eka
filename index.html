@@ -190,10 +190,6 @@
       <div id="qrcodeContainer" class="flex justify-center p-3 bg-white border border-sky-100 rounded-xl min-h-[120px] items-center"></div>
       <p id="qrText" class="text-[10px] text-slate-400 break-all select-all"></p>
       <p class="text-xs text-slate-500">Gunakan QR Code ini saat serah terima dokumen fisik & digital ke Admin Pengiriman.</p>
-      <div id="qrActions" class="hidden grid grid-cols-2 gap-2">
-        <button type="button" id="btnDownloadQR" class="btn-sky py-2 rounded-lg text-xs font-semibold">⬇ Download QR</button>
-        <button type="button" id="btnPrintQR" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 py-2 rounded-lg text-xs font-semibold">🖨 Cetak QR</button>
-      </div>
       <button type="button" data-close="modalQR" class="w-full bg-sky-100 text-sky-800 py-2 rounded-lg text-xs font-semibold">Tutup</button>
     </div>
   </div>
@@ -741,28 +737,11 @@
 
     if (mode === 'ASSIGN_LEADER') {
       const isKontrak = job.Jenis_Pekerjaan === 'Service Kontrak';
-      const existingList = String(job.Teknisi_Assigned || '')
-        .split(',').map(s => s.trim()).filter(Boolean);
-      const initialTechs = existingList.length ? existingList : ['teknisi1'];
-      const techOptions = Array.from({ length: 11 }, (_, i) =>
-        `<option value="teknisi${i + 1}">Teknisi ${i + 1} (teknisi${i + 1})</option>`
-      ).join('');
-      const rowHtml = (val = 'teknisi1', canRemove = false) => `
-        <div class="tech-row flex items-center gap-2">
-          <select class="actTeknisiSelect flex-1 border rounded p-2 text-xs bg-white">${techOptions}</select>
-          ${canRemove ? `<button type="button" class="btnRemoveTech bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-2 rounded text-xs font-semibold" title="Hapus teknisi">✕</button>` : ''}
-        </div>`;
-
       body.innerHTML = `
-        <div class="space-y-2">
-          <div class="flex justify-between items-center">
-            <label class="block text-xs font-semibold">Pilih Teknisi (Bisa Lebih dari 1 Orang)</label>
-            <button type="button" id="btnAddTech" class="text-xs bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-2.5 py-1 rounded font-semibold">+ Add Teknisi</button>
-          </div>
-          <div id="teknisiRows" class="space-y-2">
-            ${initialTechs.map((t, idx) => rowHtml(t, idx > 0)).join('')}
-          </div>
-        </div>
+        <label class="block text-xs font-semibold">Pilih Teknisi (1-11)</label>
+        <select id="actTeknisi" class="w-full border rounded p-2">
+          ${Array.from({ length: 11 }, (_, i) => `<option value="teknisi${i + 1}">Teknisi ${i + 1} (teknisi${i + 1})</option>`).join('')}
+        </select>
         <label class="block text-xs font-semibold">Jadwal Kunjungan 1 ${isKontrak ? '(Service ke-1 - Opsional/Fleksibel)' : '(Wajib)'}</label>
         <input type="date" id="actJadwal1" value="${toDateInput(job.Jadwal_1)}" class="w-full border rounded p-2">
         ${isKontrak ? `
@@ -771,22 +750,6 @@
           <label class="block text-xs font-semibold">Jadwal Kunjungan 3 (Kalibrasi PQ - Opsional/Fleksibel)</label>
           <input type="date" id="actJadwal3" value="${toDateInput(job.Jadwal_3)}" class="w-full border rounded p-2">` : ''}
         ${go('ASSIGN_LEADER', 'Terbitkan Jadwal & QR Code')}`;
-
-      const rowsEl = $('teknisiRows');
-      rowsEl.querySelectorAll('.tech-row').forEach((row, idx) => {
-        const sel = row.querySelector('.actTeknisiSelect');
-        if (sel && initialTechs[idx]) sel.value = initialTechs[idx];
-      });
-      $('btnAddTech').addEventListener('click', () => {
-        const wrap = document.createElement('div');
-        wrap.innerHTML = rowHtml('teknisi1', true).trim();
-        const newRow = wrap.firstElementChild;
-        rowsEl.appendChild(newRow);
-      });
-      rowsEl.addEventListener('click', ev => {
-        const rm = ev.target.closest('.btnRemoveTech');
-        if (rm) rm.closest('.tech-row')?.remove();
-      });
     }
 
     if (mode === 'EDIT_SCHEDULES') {
@@ -928,13 +891,7 @@
       } else {
         const payload = { action: 'updateStage', jobId, stageAction };
         if (stageAction === 'ASSIGN_LEADER') {
-          const selectedTechs = Array.from(document.querySelectorAll('#teknisiRows .actTeknisiSelect'))
-            .map(s => s.value.trim())
-            .filter(Boolean);
-          const uniqueTechs = [...new Set(selectedTechs)];
-          if (!uniqueTechs.length) throw new Error('Pilih minimal satu teknisi.');
-          payload.teknisi = uniqueTechs.join(', ');
-          payload.teknisiList = uniqueTechs;
+          payload.teknisi = $('actTeknisi').value;
           payload.jadwal1 = $('actJadwal1').value;
           payload.jadwal2 = $('actJadwal2')?.value || '';
           payload.jadwal3 = $('actJadwal3')?.value || '';
@@ -1085,76 +1042,8 @@
   }
 
   /* ---------- QR ---------- */
-  let currentQRJobId = '';
-  let currentQRValue = '';
-
-  function getQRDataUrl() {
-    const container = $('qrcodeContainer');
-    if (!container) return '';
-    const img = container.querySelector('img');
-    if (img && img.src && img.src.startsWith('data:image')) return img.src;
-    const canvas = container.querySelector('canvas');
-    if (canvas) {
-      try { return canvas.toDataURL('image/png'); } catch (e) {}
-    }
-    return '';
-  }
-
-  function downloadQRCode() {
-    if (!currentQRValue) return alert('QR Code belum tersedia.');
-    const dataUrl = getQRDataUrl();
-    const safeId = String(currentQRJobId || 'QR_Code').replace(/[^a-zA-Z0-9_-]/g, '_');
-    if (dataUrl) {
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `QR_${safeId}.png`;
-      a.click();
-      return;
-    }
-    const blob = new Blob([currentQRValue], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `QR_${safeId}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function printQRCode() {
-    if (!currentQRValue) return alert('QR Code belum tersedia.');
-    const dataUrl = getQRDataUrl();
-    const win = window.open('', '_blank', 'width=420,height=520');
-    if (!win) return alert('Izinkan pop-up browser untuk mencetak QR Code.');
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Cetak QR - ${esc(currentQRJobId)}</title>
-        <style>
-          body { font-family: Arial, sans-serif; text-align: center; padding: 28px; color: #0f172a; }
-          h2 { margin: 0 0 6px; font-size: 18px; color: #0369a1; }
-          p.sub { margin: 0 0 18px; font-size: 12px; color: #475569; }
-          img.qr { width: 210px; height: 210px; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; }
-          .code { margin-top: 14px; font-size: 11px; word-break: break-all; color: #334155; background: #f8fafc; padding: 8px; border-radius: 6px; }
-        </style>
-      </head>
-      <body>
-        <h2>PT. PRIDHANA EKA</h2>
-        <p class="sub">QR Code Serah Terima — <b>${esc(currentQRJobId)}</b></p>
-        ${dataUrl ? `<img class="qr" src="${dataUrl}" alt="QR Code">` : `<div class="code">${esc(currentQRValue)}</div>`}
-        ${dataUrl ? `<div class="code">${esc(currentQRValue)}</div>` : ''}
-        <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 150); };<\/script>
-      </body>
-      </html>
-    `);
-    win.document.close();
-  }
-
   async function showQR(jobId) {
-    currentQRJobId = jobId;
-    currentQRValue = '';
     $('qrTitle').innerText = `QR Code: ${jobId}`;
-    $('qrActions').classList.add('hidden');
     const container = $('qrcodeContainer');
     container.innerHTML = '<span class="text-xs text-sky-600">Memuat...</span>';
     $('qrText').innerText = '';
@@ -1162,15 +1051,10 @@
     try {
       const res = await api({ action: 'getQR', jobId });
       if (res.status !== 'success') throw new Error(res.message);
-      currentQRValue = res.qr || '';
       container.innerHTML = '';
-      if (typeof QRCode !== 'undefined') {
-        new QRCode(container, { text: res.qr, width: 180, height: 180 });
-      } else {
-        container.innerHTML = '<span class="text-xs text-amber-600">Pustaka QR gagal dimuat. Gunakan kode teks di bawah.</span>';
-      }
+      if (typeof QRCode !== 'undefined') new QRCode(container, { text: res.qr, width: 180, height: 180 });
+      else container.innerHTML = '<span class="text-xs text-amber-600">Pustaka QR gagal dimuat. Gunakan kode teks di bawah.</span>';
       $('qrText').innerText = res.qr;
-      if (currentQRValue) $('qrActions').classList.remove('hidden');
     } catch (err) {
       container.innerHTML = `<span class="text-xs text-red-600">${esc(err.message)}</span>`;
     }
@@ -1227,8 +1111,6 @@
   $('btnNewJobModal').addEventListener('click', () => openModal('modalCreateJob'));
   $('btnRefresh').addEventListener('click', loadJobs);
   $('btnLogout').addEventListener('click', logout);
-  $('btnDownloadQR').addEventListener('click', downloadQRCode);
-  $('btnPrintQR').addEventListener('click', printQRCode);
   $('btnExport').addEventListener('click', exportJobsToCSV);
   $('btnManageUsers').addEventListener('click', openManageUsersModal);
 
