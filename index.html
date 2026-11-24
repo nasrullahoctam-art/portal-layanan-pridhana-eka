@@ -13,7 +13,6 @@
     .btn-sky { background-color: #0284c7; color: white; transition: 0.2s; }
     .btn-sky:hover { background-color: #0369a1; }
     .btn-sky:disabled, button:disabled { opacity: .6; cursor: not-allowed; }
-    .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #64748b; }
   </style>
 </head>
 <body class="text-slate-800">
@@ -29,7 +28,7 @@
       <form id="loginForm" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-sky-900 uppercase mb-1">Username</label>
-          <input type="text" id="username" required autocomplete="username" placeholder="Username" class="w-full px-4 py-2.5 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-400">
+          <input type="text" id="username" required autocomplete="username" placeholder="Contoh: admin / sales1 / leader1 / teknisi1 / management1" class="w-full px-4 py-2.5 rounded-lg border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-400">
         </div>
         <div>
           <label class="block text-xs font-semibold text-sky-900 uppercase mb-1">Password</label>
@@ -38,7 +37,7 @@
         <button type="submit" id="btnLogin" class="w-full btn-sky font-semibold py-2.5 rounded-lg shadow-sm">Masuk ke Sistem</button>
       </form>
       <p id="loginMsg" class="text-center text-red-500 text-xs mt-3"></p>
-      <div class="footer">
+ <div class="footer">
           PT Pridhana Eka · Internal Application
         </div>
     </div>
@@ -56,7 +55,6 @@
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <button id="btnManageUsers" class="hidden text-xs bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg font-medium">👥 Kelola User</button>
-        <button id="btnViewLogs" class="hidden text-xs bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 px-3 py-1.5 rounded-lg font-medium">📜 Audit Log</button>
         <button id="btnRefresh" class="text-xs bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-3 py-1.5 rounded-lg font-medium">↻ Refresh Data</button>
         <button id="btnLogout" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-medium">Keluar</button>
       </div>
@@ -210,9 +208,9 @@
     </div>
   </div>
 
-  <!-- MODAL 4: VIEW JOB DETAIL (RIWAYAT TANGGAL SETIAP ALUR, INSTRUMEN & PENGIRIMAN BERTAHAP) -->
+  <!-- MODAL 4: VIEW JOB DETAIL (RIWAYAT TANGGAL SETIAP ALUR, AUDIT LOG JAM & TANGGAL, INSTRUMEN & PENGIRIMAN BERTAHAP) -->
   <div id="modalViewJob" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3">
         <div>
           <h3 class="font-bold text-sky-900 text-base" id="viewJobTitle">Detail Pekerjaan</h3>
@@ -224,7 +222,7 @@
     </div>
   </div>
 
-  <!-- MODAL 5: KELOLA USER & AUDIT LOG (ADMINISTRATOR / MANAGEMENT) -->
+  <!-- MODAL 5: KELOLA USER (ADMINISTRATOR) -->
   <div id="modalAdminExtra" class="hidden fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3">
@@ -246,6 +244,7 @@
   let currentFilter = 'ALL';
   let busy = false;
   let scanner = null;
+  let viewJobSeq = 0;
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -267,7 +266,10 @@
   const fmtDateTime = v => {
     if (!v) return '-';
     const d = new Date(v);
-    return isNaN(d.getTime()) ? fmtDate(v) : d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+    if (isNaN(d.getTime())) return fmtDate(v);
+    const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
+    return `${tgl} • ${jam} WIB`;
   };
   const saveSession = () => { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, user: currentUser })); } catch (e) {} };
   const clearSession = () => { try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {} };
@@ -308,6 +310,7 @@
   function openModal(id) { $(id).classList.remove('hidden'); }
   function closeModal(id) {
     if (id === 'modalAction') stopScan();
+    if (id === 'modalViewJob') viewJobSeq++;
     $(id).classList.add('hidden');
   }
 
@@ -318,7 +321,6 @@
     if (['ADMIN_SALES', 'ADMINISTRATOR'].includes(currentUser.role)) $('btnNewJobModal').classList.remove('hidden');
     if (['MANAGEMENT', 'ADMINISTRATOR'].includes(currentUser.role)) {
       $('managementPanel').classList.remove('hidden');
-      $('btnViewLogs').classList.remove('hidden');
     }
     if (currentUser.role === 'ADMINISTRATOR') $('btnManageUsers').classList.remove('hidden');
     updateCategoryButtons();
@@ -414,7 +416,7 @@
       return `"${s.replace(/"/g, '""')}"`;
     };
     const csv = [headers.join(','), ...data.map(r => headers.map(h => cell(r[h])).join(','))].join('\r\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -534,8 +536,9 @@
     return `<div class="flex flex-col items-end">${parts.join('')}</div>`;
   }
 
-  /* ---------- VIEW JOB DETAIL (RIWAYAT TANGGAL SETIAP ALUR & INSTRUMEN) ---------- */
-  function openViewJobModal(job) {
+  /* ---------- VIEW JOB DETAIL (RIWAYAT TANGGAL SETIAP ALUR, AUDIT LOG & INSTRUMEN) ---------- */
+  async function openViewJobModal(job) {
+    const seq = ++viewJobSeq;
     const st = getInstrStats(job);
     $('viewJobTitle').innerText = `${job.Job_ID} — ${job.Customer}`;
     $('viewJobSubtitle').innerText = `${job.Jenis_Pekerjaan} | No. PO: ${job.No_PO} | Status: ${job.Status_Alur}`;
@@ -617,6 +620,12 @@
         </div>
       </div>
       <div>
+        <div class="font-bold text-sky-900 text-xs uppercase mb-2">📜 Audit Log Aktivitas Job (Jam & Tanggal)</div>
+        <div id="jobAuditLogBox" class="border border-sky-200 rounded-xl p-3 bg-sky-50/40 text-xs">
+          <div class="text-sky-600 py-2 text-center">Memuat audit log job ${esc(job.Job_ID)}...</div>
+        </div>
+      </div>
+      <div>
         <div class="font-bold text-sky-900 text-xs uppercase mb-2">Tautan Dokumen Tersimpan</div>
         <div class="flex flex-wrap gap-2">
           ${docLinks.length
@@ -626,6 +635,48 @@
       </div>
     `;
     openModal('modalViewJob');
+
+    try {
+      const res = await api({ action: 'getLogs', jobId: job.Job_ID });
+      if (seq !== viewJobSeq) return;
+      const box = $('jobAuditLogBox');
+      if (!box) return;
+      if (res.status !== 'success') {
+        box.innerHTML = `<div class="text-red-600">${esc(res.message || 'Gagal memuat audit log.')}</div>`;
+        return;
+      }
+      const logs = (res.logs || []).filter(l => !l.jobId || String(l.jobId) === String(job.Job_ID));
+      if (!logs.length) {
+        box.innerHTML = '<div class="text-slate-500">Belum ada catatan audit log untuk pekerjaan ini.</div>';
+        return;
+      }
+      box.innerHTML = `
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse bg-white rounded-lg overflow-hidden">
+            <thead>
+              <tr class="bg-sky-100 text-sky-900 text-[11px]">
+                <th class="p-2">Jam & Tanggal</th>
+                <th class="p-2">User</th>
+                <th class="p-2">Aksi</th>
+                <th class="p-2">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y text-xs">
+              ${logs.map(l => `
+                <tr>
+                  <td class="p-2 font-semibold text-sky-900 whitespace-nowrap">${esc(fmtDateTime(l.timestamp))}</td>
+                  <td class="p-2 whitespace-nowrap">${esc(l.user)} <span class="text-slate-500">(${esc(l.role)})</span></td>
+                  <td class="p-2 font-medium text-slate-800">${esc(l.aksi)}</td>
+                  <td class="p-2 text-slate-600">${esc(l.keterangan)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    } catch (err) {
+      if (seq !== viewJobSeq) return;
+      const box = $('jobAuditLogBox');
+      if (box) box.innerHTML = `<div class="text-red-600">${esc(err.message)}</div>`;
+    }
   }
 
   /* ---------- Buat job ---------- */
@@ -913,7 +964,7 @@
     }
   }
 
-  /* ---------- Kelola User & Audit Log (Administrator / Management) ---------- */
+  /* ---------- Kelola User (Administrator) ---------- */
   async function openManageUsersModal() {
     $('adminExtraTitle').innerText = '👥 Manajemen Akun Pengguna (Administrator)';
     $('adminExtraBody').innerHTML = `
@@ -993,32 +1044,6 @@
     }
   }
 
-  async function openLogsModal() {
-    $('adminExtraTitle').innerText = '📜 Audit Log Aktivitas Sistem (50 Terbaru)';
-    $('adminExtraBody').innerHTML = '<div class="text-center py-4 text-sky-600">Memuat riwayat log...</div>';
-    openModal('modalAdminExtra');
-    try {
-      const res = await api({ action: 'getLogs' });
-      if (res.status !== 'success') throw new Error(res.message);
-      $('adminExtraBody').innerHTML = `
-        <table class="w-full text-left border-collapse">
-          <thead><tr class="bg-sky-100 text-sky-900"><th class="p-2">Waktu</th><th class="p-2">Job ID</th><th class="p-2">User</th><th class="p-2">Aksi</th><th class="p-2">Keterangan</th></tr></thead>
-          <tbody class="divide-y">
-            ${res.logs.map(l => `
-              <tr>
-                <td class="p-2">${fmtDateTime(l.timestamp)}</td>
-                <td class="p-2 font-semibold">${esc(l.jobId)}</td>
-                <td class="p-2">${esc(l.user)} (${esc(l.role)})</td>
-                <td class="p-2">${esc(l.aksi)}</td>
-                <td class="p-2">${esc(l.keterangan)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    } catch (err) {
-      $('adminExtraBody').innerHTML = `<div class="text-red-600">${esc(err.message)}</div>`;
-    }
-  }
-
   /* ---------- QR ---------- */
   async function showQR(jobId) {
     $('qrTitle').innerText = `QR Code: ${jobId}`;
@@ -1091,7 +1116,6 @@
   $('btnLogout').addEventListener('click', logout);
   $('btnExport').addEventListener('click', exportJobsToCSV);
   $('btnManageUsers').addEventListener('click', openManageUsersModal);
-  $('btnViewLogs').addEventListener('click', openLogsModal);
 
   (function restoreSession() {
     try {
